@@ -1,0 +1,91 @@
+# ==========================
+# Core
+# ==========================
+python-dotenv
+requests
+httpx
+aiohttp
+urllib3
+pyyaml
+
+# ==========================
+# AI / LLM
+# ==========================
+openai
+google-genai
+anthropic
+ollama
+transformers
+accelerate
+sentence-transformers
+torch
+
+# ==========================
+# LangChain
+# ==========================
+langchain
+langchain-community
+langchain-core
+chromadb
+faiss-cpu
+
+# ==========================
+# Data
+# ==========================
+numpy
+pandas
+
+# ==========================
+# Automation
+# ==========================
+selenium
+webdriver-manager
+playwright
+
+# ==========================
+# FastAPI
+# ==========================
+fastapi
+uvicorn
+
+# ==========================
+# Voice
+# ==========================
+SpeechRecognition
+openai-whisper
+edge-tts
+pyttsx3
+
+# ==========================
+# Image
+# ==========================
+opencv-python
+Pillow
+
+# ==========================
+# CLI
+# ==========================
+rich
+typer
+tqdm
+
+# ==========================
+# Utilities
+# ==========================
+psutil
+schedule
+watchdog
+
+# ==========================
+# Security
+# ==========================
+cryptography
+
+# ==========================
+# Development
+# ==========================
+black
+isort
+pylint
+pytest
+ipykernel
