@@ -37,14 +37,14 @@ def main():
             scope_config = DEFAULT_SCOPE_CONFIG
 
         # Initialize Managers
-        target_mgr = TargetManager()
         scope_mgr = ScopeManager()
+        target_mgr = TargetManager(scope_manager=scope_mgr)
 
-        # Load target
-        target_mgr.set_target(target_url)
-
-        # Load and set scope
+        # Load and set scope FIRST
         scope_mgr.load_scope(scope_config)
+
+        # Load target (will validate against scope)
+        target_mgr.set_target(target_url)
 
         # Basic Status
         logger.info("--- Phase 01 Initialization Status ---")

@@ -7,7 +7,7 @@ import tempfile
 import os
 import json
 from pathlib import Path
-from phase01.utils.file_utils import ensure_directory, verify_output_path, write_json_file
+from phase01.utils.file_utils import ensure_directory, verify_output_path, write_json_file, read_json_file
 from phase01.core.exceptions import FileOperationError
 from phase01.config.settings import settings
 
@@ -76,6 +76,58 @@ class TestFileUtilsSecurity(unittest.TestCase):
     def test_write_json_file_absolute_outside(self):
         """Test that absolute paths outside output directory are rejected."""
         test_path = "/tmp/outside.json"
+        test_data = {"key": "value"}
+        with self.assertRaises(FileOperationError):
+            write_json_file(test_path, test_data)
+
+    # NEW REGRESSION TESTS
+    def test_fileoperationerror_no_double_wrap(self):
+        """Test that FileOperationError is not double-wrapped."""
+        # If verify_output_path raises FileOperationError directly,
+        # it should propagate unchanged through write_json_file
+        test_path = self.output_dir / "../outside.json"
+        test_data = {"key": "value"}
+        try:
+            write_json_file(test_path, test_data)
+        except FileOperationError as e:
+            # The exception should be the original FileOperationError,
+            # not wrapped in another FileOperationError
+            self.assertIsInstance(e, FileOperationError)
+            self.assertIn("Path traversal detected", str(e))
+        else:
+            self.fail("Expected FileOperationError")
+
+    def test_read_json_file_not_found(self):
+        """Test that read_json_file raises FileOperationError for missing file."""
+        test_path = self.output_dir / "nonexistent.json"
+        with self.assertRaises(FileOperationError) as cm:
+            read_json_file(test_path)
+        self.assertIn("File not found", str(cm.exception))
+
+    def test_read_json_file_invalid_json(self):
+        """Test that read_json_file handles invalid JSON."""
+        test_path = self.output_dir / "bad.json"
+        with open(test_path, "w") as f:
+            f.write("not valid json")
+        with self.assertRaises(FileOperationError):
+            read_json_file(test_path)
+
+    def test_ensure_directory_failure(self):
+        """Test ensure_directory with invalid path."""
+        # Test that it raises FileOperationError for invalid paths
+        with self.assertRaises(FileOperationError):
+            ensure_directory("/root/invalid/path")
+
+    def test_write_json_file_sibling_escape(self):
+        """Test that sibling path escape is rejected."""
+        test_path = self.output_dir / ".." / "outside.json"
+        test_data = {"key": "value"}
+        with self.assertRaises(FileOperationError):
+            write_json_file(test_path, test_data)
+
+    def test_write_json_file_nested_traversal(self):
+        """Test that nested traversal is rejected."""
+        test_path = self.output_dir / "subdir" / ".." / ".." / "outside.json"
         test_data = {"key": "value"}
         with self.assertRaises(FileOperationError):
             write_json_file(test_path, test_data)

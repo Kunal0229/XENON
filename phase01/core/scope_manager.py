@@ -25,8 +25,25 @@ class ScopeManager:
         logger.info("Loading and validating scope...")
         validate_scope(scope_dict)
 
-        self._scope = Scope.from_dict(scope_dict)
+        # Normalize rules when loading
+        normalized_in_scope = [self._normalize_rule(rule) for rule in scope_dict.get("in_scope", [])]
+        normalized_out_of_scope = [self._normalize_rule(rule) for rule in scope_dict.get("out_of_scope", [])]
+
+        self._scope = Scope(
+            in_scope=normalized_in_scope,
+            out_of_scope=normalized_out_of_scope
+        )
         logger.info(f"Scope loaded: {len(self._scope.in_scope)} in-scope, {len(self._scope.out_of_scope)} out-of-scope.")
+
+    def _normalize_rule(self, rule: str) -> str:
+        """Normalize a scope rule to canonical form (lowercase hostname)."""
+        if not rule:
+            return rule
+        rule = rule.strip()
+        if "://" in rule:
+            parsed = urlparse(rule)
+            return parsed.hostname.lower() if parsed.hostname else rule
+        return rule.lower()
 
     def enforce_scope(self, resource: str) -> None:
         """
@@ -40,9 +57,9 @@ class ScopeManager:
         try:
             normalized_resource = self._normalize_resource(resource)
             if not normalized_resource:
-                raise OutOfScopeError(f"Malformed or invalid resource format: {resource}")
-        except Exception as e:
-            raise OutOfScopeError(f"Resource normalization failed: {resource} - {e}")
+                raise OutOfScopeError("Malformed or invalid resource format")
+        except Exception:
+            raise OutOfScopeError("Resource normalization failed")
 
         is_in_scope = self.is_in_scope(normalized_resource)
 
@@ -61,16 +78,16 @@ class ScopeManager:
             return False
 
         if not resource:
-            logger.warning(f"Empty or None resource provided for scope check: {resource}")
+            logger.warning("Empty or None resource provided for scope check")
             return False
 
         try:
             normalized_resource = self._normalize_resource(resource)
             if not normalized_resource:
-                logger.warning(f"Resource normalization failed for scope check: {resource}")
+                logger.warning("Resource normalization failed for scope check")
                 return False
-        except Exception as e:
-            logger.warning(f"Resource normalization error in scope check for {resource}: {e}")
+        except Exception:
+            logger.warning("Resource normalization error in scope check")
             return False
 
         # Precedence: Explicit out-of-scope rules MUST always take precedence over in-scope rules

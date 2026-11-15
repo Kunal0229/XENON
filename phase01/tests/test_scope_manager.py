@@ -116,6 +116,23 @@ class TestScopeManager(unittest.TestCase):
         self.assertFalse(self.manager.is_in_scope("example.com:invalid"))
         self.assertFalse(self.manager.is_in_scope("example.com:99999"))
 
+    def test_wildcard_does_not_match_base_domain(self):
+        # *.example.com should not match example.com when example.com is not explicitly in scope
+        scope_config = {
+            "in_scope": ["*.example.com"],  # only wildcard, no explicit base domain
+            "out_of_scope": []
+        }
+        self.manager.load_scope(scope_config)
+        self.assertFalse(self.manager.is_in_scope("example.com"))
+        # But a subdomain should match
+        self.assertTrue(self.manager.is_in_scope("api.example.com"))
+
+    def test_no_scope_manager_fails(self):
+        # Test that ScopeManager fails closed when no scope is loaded
+        new_manager = ScopeManager()
+        with self.assertRaises(OutOfScopeError):
+            new_manager.enforce_scope("example.com")
+
 
 if __name__ == '__main__':
     unittest.main()

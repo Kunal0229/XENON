@@ -100,34 +100,32 @@ These capabilities belong to later phases.
 Phase 01 follows a modular architecture.
 
 
-                    XENON
-                      │
-                      ▼
-                   main.py
-                      │
-          ┌───────────┴───────────┐
-          │                       │
-          ▼                       ▼
-      Configuration          Target Management
-          │                       │
-          │               ┌───────┴────────┐
-          │               │                │
-          ▼               ▼                ▼
-       settings.py    Target Model    Scope Manager
-       defaults.py                         │
-                                           ▼
-                                      Scope Model
-          │
-          └──────────────┬────────────────┘
-                         │
-                         ▼
-                    Validation
-                         │
-                         ▼
-                      Logging
-                         │
-                         ▼
-                  Output / File Utils
+```mermaid
+graph TD
+    Main[main.py] --> Logger
+    Main --> TargetManager
+    Main --> ScopeManager
+    Main --> Exceptions
+    Main --> Configuration
+    TargetManager --> TargetModel
+    TargetManager --> Validation
+    TargetManager --> Exceptions
+    TargetManager --> Logger
+    TargetManager --> Configuration
+    TargetManager --> ScopeManager
+    ScopeManager --> ScopeModel
+    ScopeManager --> Validation
+    ScopeManager --> Exceptions
+    ScopeManager --> Logger
+    Validation --> Configuration
+    Validation --> Exceptions
+    Logger --> Configuration
+    FileUtils --> Exceptions
+    FileUtils --> Configuration
+    Configuration --> Settings
+    Configuration --> Defaults
+```
+
 
 ---
 
@@ -161,8 +159,10 @@ phase01/
 │   └── .gitkeep
 │
 └── tests/
-    ├── test_target_manager.py
+    ├── test_file_utils.py
+    ├── test_logger_security.py
     ├── test_scope_manager.py
+    ├── test_target_manager.py
     └── test_validation.py
 
 ---
@@ -313,7 +313,6 @@ The model should represent information such as:
 
 {
   "target": "https://authorized-target.example",
-  "scope": {},
   "created_at": "...",
   "status": "active"
 }
@@ -731,11 +730,21 @@ Session cookies
 Authorization headers
 Secrets
 
-## 17.5 Path Safety
+## 17.5 Logging Security Notes
+
+The `SensitiveDataFilter` implements the following security mechanisms:
+
+- **Exception argument redaction:** Sensitive patterns appearing in exception string arguments are redacted before exception reconstruction, reducing the risk of secrets leaking through formatted traceback output.
+- **Compatible exception reconstruction:** When an exception type supports reconstruction via `exc_type(*new_args)` with the redacted arguments, the original traceback reference is preserved.
+- **Fail-closed behavior:** If exception reconstruction fails (for example, if a custom exception requires constructor parameters beyond `*args`), `record.exc_info` is set to `None`. This prevents exposure through a failed reconstruction, but results in losing traceback information for that log record.
+- **stack_info filtering:** The `stack_info` field of log records is also filtered, reducing the risk of secrets appearing in stack traces.
+- **Compatibility limitation:** Not every possible custom exception is supported. Exceptions requiring positional or keyword arguments beyond standard `*args` will trigger the fail-closed behavior.
+
+## 17.6 Path Safety
 
 File utilities must avoid unsafe/unintended filesystem paths.
 
-## 17.6 Deterministic Decisions
+## 17.7 Deterministic Decisions
 
 Scope decisions must be deterministic and reproducible.
 
@@ -743,7 +752,7 @@ Scope decisions must be deterministic and reproducible.
 
 # 18. Implementation Constraints
 
-Claude Code must follow these constraints while implementing Phase 01.
+The following constraints must be followed while implementing Phase 01.
 
 Do not change the locked folder structure.
 Do not add unrelated features.
@@ -778,22 +787,14 @@ For scope logic, use synthetic/test domains and controlled test cases.
 # 20. Implementation Status
 
 Current status:
-
 Architecture: LOCKED
-README Specification: v1.0
-Implementation: NOT STARTED
-Testing: NOT STARTED
-Review: NOT STARTED
-
-After implementation:
-
-Architecture: LOCKED
-README Specification: v1.0
+README Specification: v1.0 — documentation re-audit passed
 Implementation: COMPLETED
-Testing: PENDING / PASSED
-Review: PENDING
-
-The status must be updated as the phase progresses.
+Testing: PASS — 124 tests, 0 failures, 0 errors
+Code Review: COMPLETED
+Regression Testing: PASS
+Final User Approval: PENDING USER CONFIRMATION
+Overall Phase 01 Closure: READY FOR FINAL APPROVAL
 
 ----
 
@@ -844,29 +845,29 @@ These extensions must consume the Phase 01 contracts rather than bypassing them.
 
 Phase 01 is considered complete only when:
 
- Locked folder structure exists.
- README specification exists.
- Configuration system works.
- Target model works.
- Target Manager works.
- Scope model works.
- Scope Manager works.
- Target validation works.
- Scope validation works.
- Out-of-scope resources are rejected.
- Explicit out-of-scope rules take precedence.
- Centralized logging works.
- Common exceptions are implemented.
- File utilities work.
- main.py initializes Phase 01 successfully.
- Automated tests are implemented.
- Target tests pass.
- Scope tests pass.
- Validation tests pass.
- No known critical foundation/security issue remains.
- Code review is completed.
- Cline regression testing is completed.
- User gives final approval.
+- [x] Locked folder structure exists.
+- [x] README specification exists.
+- [x] Configuration system works.
+- [x] Target model works.
+- [x] Target Manager works.
+- [x] Scope model works.
+- [x] Scope Manager works.
+- [x] Target validation works.
+- [x] Scope validation works.
+- [x] Out-of-scope resources are rejected.
+- [x] Explicit out-of-scope rules take precedence.
+- [x] Centralized logging works.
+- [x] Common exceptions are implemented.
+- [x] File utilities work.
+- [x] main.py initializes Phase 01 successfully.
+- [x] Automated tests are implemented.
+- [x] Target tests pass.
+- [x] Scope tests pass.
+- [x] Validation tests pass.
+- [x] No known critical foundation/security issue remains.
+- [x] Code review is completed.
+- [x] Regression testing is completed.
+- [ ] User gives final approval.
 
 -----
 
@@ -883,20 +884,3 @@ Logging requirements defined.
 Testing strategy defined.
 Security requirements defined.
 Definition of Done defined.
-
-
-### 🔒 Ek important baat bhai
-
-Maine jaan-bujhkar README mein **implementation-level freedom thodi rakhi hai**, jaise `dataclass` use karna hai ya exact class/function names kya honge. Ye cheezein Claude ko implementation ke level par decide karne di ja sakti hain.
-
-Lekin **architecture, responsibilities, scope boundary, data contracts, security rules aur Definition of Done locked hain.**
-
-Iska matlab:
-
-**Claude:** *“Code kaise likhna hai?”* → decide kar sakta hai.  
-**Claude:** *“Phase 1 mein kya hona chahiye?”* → decide nahi karega.  
-**Claude:** *“Naya module add kar deta hoon kyunki better lagega.”* → ❌ No.
-
-Aur ek correction maine intentionally kiya hai: pehle jo rough DoD mein **“Attack Surface input, detector registry, executor, findings...”** aa gaya tha, woh Phase 1 ke scope se mismatch tha. **Restarted Phase 1 ke liye woh hata diya hai**, kyunki ab hum genuinely foundation se start kar rahe hain.
-
-**Ye README v1.0 ko Phase 1 ka implementation contract maan sakte hain.** 🔒

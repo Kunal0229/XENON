@@ -1,0 +1,831 @@
+# XENON — MASTER CLINE HANDOVER / ENGINEERING FORENSIC REPORT
+
+**Author:** Cline (QA / Security Verification agent)
+**Scope of this document:** everything I can factually recover from my actual interaction history with this workspace. Nothing is invented. Items I cannot verify are explicitly tagged.
+
+**Evidence-tag legend used throughout:**
+- `[CONFIRMED]` — I directly read, ran, or observed it in this workspace.
+- `[LIKELY]` — strongly implied by confirmed evidence.
+- `[MEMORY / UNVERIFIED]` — I remember it but cannot prove it from available artifacts.
+- `[UNKNOWN / NOT RECOVERED]` — no information available; not guessing.
+
+---
+
+# ⚠️ CRITICAL CORRECTION BEFORE ANYTHING ELSE
+
+**In every interaction in my recoverable history, Cline acted ONLY as a QA / Security Verification / Audit agent. Cline did not implement, create, or modify any XENON production file in any session I can recover.**
+
+- Every Cline prompt I received was a QA / review / audit / verification prompt with explicit "DO NOT modify / DO NOT fix / DO NOT create files" rules.
+- The implementer in the workflow was **Claude Code** (`[CONFIRMED]` — the Round‑2 prompt explicitly states *"Claude Code has now implemented a remediation pass"*).
+- I did **not** write `phase01/` code, did **not** author tests, and did **not** make architectural decisions.
+- Any handover that claims "Cline implemented Phase 1" would be false based on my history. **Mark such a claim [UNKNOWN / NOT RECOVERED] unless another agent's history says otherwise.**
+
+---
+
+# PART 1 — UNDERSTANDING OF XENON
+
+## 1.1 What XENON is `[CONFIRMED]`
+From `/home/kunal/Xenon/README.md` (root, first 20 lines read):
+
+> **XENON** — *"An AI-powered modular assistant platform."*
+> Vision bullets: **AI Assistants, Automation, Local LLM Support, Security Modules, Voice Interaction, Extensible Plugin Architecture.**
+> Current Status: **🚧 Under Development.**
+
+From `/home/kunal/Xenon/phase01/README.md`:
+
+> **XENON — Phase 01 — Foundation & Target Management**
+> *"Phase 01 establishes the foundational layer of the XENON web security assessment platform."*
+> *"XENON [is a] web security assessment platform"* — Phase 01 is the foundation for **future bug‑bounty and web-security assessment phases**.
+
+## 1.2 Why it exists / purpose `[CONFIRMED]`
+Phase 01's stated purpose is to ensure XENON knows:
+1. What target is being assessed.
+2. Whether the target is valid.
+3. What is allowed to be tested.
+4. What is not allowed to be tested.
+5. How target and scope information is represented.
+6. How configuration is loaded.
+7. How application events and errors are logged.
+8. How common errors are handled.
+9. Where generated output can be stored.
+10. How the foundation layer can be tested.
+
+> *"The foundation must be designed so that future phases can consume it without directly modifying its internal implementation."*
+
+## 1.3 Architecture (as specified) `[CONFIRMED]`
+The README contains an architecture diagram: `main.py` → Configuration (`settings.py`, `defaults.py`) and Target Management (Target Model, Scope Manager → Scope Model) → Validation. It also defines a **locked folder structure** and **locked responsibilities**.
+
+## 1.4 Security / bug‑bounty role `[CONFIRMED from README]`
+- Scope enforcement is described as **"a mandatory security control"** (§9).
+- *"The foundation must make it difficult for future modules to accidentally bypass scope validation."*
+- *"Do not bypass Scope Manager checks."*
+- *"Out-of-scope resources must never be treated as valid assessment targets."*
+- Security requirements include: never log credentials/tokens/cookies/secrets; reject credential-bearing URLs; enforce output-path boundaries.
+
+## 1.5 Major capabilities at Phase 01 `[CONFIRMED — all foundation only]`
+Configuration, target management, scope management, target validation, scope enforcement, common models, centralized logging, common exceptions, file/output utilities, CLI initialization, tests, docs.
+
+**Explicitly EXCLUDED from Phase 01** `[CONFIRMED — quoted from README]`: subdomain enumeration, DNS enumeration/recon, port scanning, technology detection, directory discovery, endpoint discovery, parameter discovery, authentication testing, authorization testing, IDOR, SQL injection, XSS, SSRF, command injection, vulnerability‑detector execution, AI‑based vulnerability decision making, exploit generation, payload generation, HTTP fuzzing.
+
+> ⚠️ **This exclusion list is a hard architectural boundary.** Any Phase‑01 file implementing recon/scanning/detectors/AI decisions is an architecture violation. (Verified absent in Round 4.)
+
+## 1.6 Development philosophy `[LIKELY]`
+- Locked architecture; "implementation-level freedom" for exact class/function names, but "architecture, responsibilities, scope boundary, data contracts, security rules and Definition of Done are locked."
+- Phase-gated development (`phase01/` directory naming).
+- Security-first foundation.
+- Downgrade/README note (Hinglish): *"Claude: 'Code kaise likhna hai?' → decide kar sakta hai. Claude: 'Phase 1 mein kya hona chahiye?' → decide nahi karega. Claude: 'Naya module add kar deta hoon kyunki better lagega.' → ❌ No."*
+
+## 1.7 Rebuilt vs Old XENON
+- **Old XENON:** `[UNKNOWN / NOT RECOVERED]` — I have never seen any prior/original XENON code, repo, or conversation. I cannot describe or compare it.
+- **Rebuilt XENON (Phase 01):** `[CONFIRMED]` — the repository at `/home/kunal/Xenon`, on branch `main`, tracked to `origin https://github.com/Kunal0229/XENON.git`.
+
+**Evidence that Phase 1 was restarted** `[CONFIRMED — README text]`:
+> *"Restarted Phase 1 ke liye woh hata diya hai, kyunki ab hum genuinely foundation se start kar rahe hain."*
+> *"Aur ek correction maine intentionally kiya hai: pehle jo rough DoD mein 'Attack Surface input, detector registry, executor, findings...' aa gaya tha, woh Phase 1 ke scope se mismatch tha."*
+
+So an **earlier rough Definition of Done** had included *Attack Surface input, detector registry, executor, findings* — these were **deliberately removed** from Phase 1. `[CONFIRMED]`
+
+## 1.8 Evolution `[PARTIAL]`
+- Old XENON history: `[UNKNOWN / NOT RECOVERED]`
+- Phase 1 restart → README v1.0 → base implementation (commit `8fb30b1`) → 4 QA rounds by Cline → remediation passes by Claude Code (uncommitted working tree as of Round 4).
+
+---
+
+# PART 2 — CLINE'S ROLE IN THE XENON TEAM
+
+`[CONFIRMED — based directly on the prompts I received]`
+
+| Question | Answer |
+|---|---|
+| Task types assigned to Cline | QA / Security Verification / Regression Testing / Architecture Compliance / Adversarial Audit |
+| Who assigned them | Kunal (the human user), via prompts |
+| How communicated | Long structured prompts with absolute rules, test matrices, required report formats |
+| Did Cline implement code? | **No** — explicitly forbidden ("DO NOT modify production code", "DO NOT fix", "DO NOT create files") |
+| Did Cline perform reviews? | **Yes** — 4 rounds |
+| Did Cline perform audits? | **Yes** — security + architecture + test-quality audits |
+| Was Cline used for debugging? | **Indirectly** — Cline *diagnosed* root causes with reproductions but did not apply fixes |
+| Was Cline used for testing? | **Yes** — ran the suite 2–3× per round plus extensive manual/adversarial probes |
+| Was Cline used for architecture validation? | **Yes** — verified locked folder structure and absence of Phase‑2 functionality |
+| Did Cline identify implementation mistakes? | **Yes** — see Part 6 |
+| How were findings communicated? | Structured QA reports in-chat (severity-classified, with exact evidence/commands). **No report files were ever created in the repo** (explicitly forbidden). |
+
+**Type of tasks:** All were *verification of Claude Code's work*, not implementation.
+
+---
+
+# PART 3 — COMPLETE CLINE TASK HISTORY
+
+## TASK 1 — Phase 01 QA Round 1 (Initial full audit)
+- **DATE/TIME:** `[UNKNOWN — not timestamped in context; environment date 19/09/2026]`
+- **CONTEXT:** `phase01/` implementation existed at commit `8fb30b1`; Cline asked to audit it against `phase01/README.md`.
+- **PROMPT/INSTRUCTION (essence, `[CONFIRMED]`):** "You are acting ONLY as the QA/Test Engineer for XENON Phase 01… Test the implementation against the existing phase01/README.md specification. A. Inspect architecture… B. Review config/settings.py, config/defaults.py, core/target_manager.py, core/scope_manager.py, core/logger.py, core/exceptions.py, models/target.py, models/scope.py, utils/file_utils.py, utils/validation.py, main.py. C. Review all existing Phase 01 tests. D. Run `python -m unittest discover -s phase01/tests -v`. E. Run it a second time. F. Verify security requirements: scope fail-closed; out-of-scope overrides in-scope; wildcard correctness; wildcard ≠ bare root; malformed target rejection; credential rejection; no sensitive logging; inline+parameterized logging safe; path traversal blocked; absolute paths blocked; file errors handled; no hardcoded bypass. G. Check dead code, unused imports, duplication, error handling, architecture violations, missing tests, security weaknesses. H. Verify `python -m phase01.main`. I. Verify core imports."
+- **OBJECTIVE:** Independent verification of the whole phase.
+- **FILES INSPECTED:** all 11 production modules + `FINAL_HARDENING_REPORT.md` + 5 test files + `phase01/README.md` + root `README.md`.
+- **FILES MODIFIED / CREATED:** **none.**
+- **TESTS:** `python3 -m unittest discover -s phase01/tests -v` ×2 → **Ran 60 tests, OK, exit 0** both runs (deterministic).
+- **PROBLEMS FOUND:** 16 findings (see Part 6).
+- **RESULT:** 🟡/🔴 class result — multiple HIGH security findings; **not approved**.
+- **FOLLOW-UP:** Claude Code remediation pass.
+- **FINAL STATUS:** Closed as superseded by Round 2.
+
+## TASK 2 — Phase 01 QA Round 2 (Post‑remediation verification)
+- **CONTEXT:** "Claude Code has now implemented a remediation pass." Prompt: *"Your job in this round is to VERIFY whether those fixes are actually correct… 10. Do not trust Claude's remediation report blindly. 11. Independently reproduce the previous Cline findings. 12. Look for regressions caused by the remediation."*
+- **OBJECTIVE:** Re‑verify #1–#15 and hunt regressions.
+- **FILES INSPECTED:** same set, now modified (logger.py, scope_manager.py, target_manager.py, main.py, test_logger_security.py, utils/validation.py; `FINAL_HARDENING_REPORT.md` deleted).
+- **FILES MODIFIED / CREATED:** **none.**
+- **CODE CHANGES (by Claude, observed):** credential rejection moved/added into `validate_target`; logger handles dict args; URL-credential regex; scope normalization via `_normalize_rule`; logger reads `settings.log_level`; URL sanitizer added to TargetManager; TargetManager accepts `scope_manager`.
+- **TESTS:** **Ran 65 tests, OK** ×2.
+- **PROBLEMS FOUND (critical):**
+  - **NEW CRITICAL: non‑atomic target state** — `set_target()` mutated `self._current_target` at line 46 **before** the scope check at lines 49–51. A rejected out‑of‑scope target became `Target(..., status='active')`; a previously valid target was destroyed.
+  - Scope enforcement **opt‑in** (`TargetManager()` default had no scope manager).
+  - Residual logger gaps; `FileOperationError` double‑wrap; unused imports.
+- **EVIDENCE:** `AFTER REJECTION get_target() => Target(target='https://payments.example.com', created_at='2026-09-16T15:06:44.871374+00:00', status='active')`; `PREVIOUS PRESERVED? False`.
+- **RESULT:** 🔴 **BLOCKED**.
+- **FOLLOW-UP:** Round‑3 remediation.
+- **FINAL STATUS:** Superseded by Round 3.
+
+## TASK 3 — Phase 01 QA Round 3
+- **CONTEXT:** Verify Round‑2 remediation: atomic state, mandatory ScopeManager, logger/validation fixes.
+- **FILES INSPECTED:** full tree again.
+- **FILES MODIFIED / CREATED:** **none.**
+- **TESTS:** **Ran 73 tests, OK** ×3 (per‑file 7/14/16/21/15).
+- **PROBLEMS FOUND:** residual logger colon/space leaks (`token: SECRET` etc.), `FileOperationError` still double‑wrapped, `Dict/Any/List` unused imports still present, missing tests, `setup_logger` semantics.
+- **RESULT:** 🟡 **CONDITIONAL PASS**.
+- **FOLLOW-UP:** Round‑3 remediation by Claude (M1–M3, L1, L4, L5).
+- **FINAL STATUS:** Superseded by Round 4.
+
+## TASK 4 — Phase 01 QA Round 4 (Final Security Gate)
+- **CONTEXT:** Verify claims: M1 fixed, M2 fixed, M3 added, L1 removed, L4 fixed, L5 fixed, 79 tests ×3, CLI, imports, architecture.
+- **FILES INSPECTED:** all production + all 5 test files.
+- **FILES MODIFIED / CREATED:** **none.**
+- **TESTS:** **Ran 79 tests, OK** ×3 (13/14/16/21/15); 0 fail/error/skip.
+- **PROBLEMS FOUND (final):**
+  - **M1 NOT fixed** — 20 inline leaks (`key : SECRET`, `key = SECRET`); `Authorization: %s` / `Cookie: %s` / `Authorization: Bearer %s` **leak the raw secret to stderr** and break logging (`TypeError: not all arguments converted during string formatting`, `Arguments: ('SECRET',)`).
+  - **M2 fixed** ✅, **L1 fixed** ✅, **L4 NOT fixed** ❌, **L5 partial** ⚠️, **M3 partial** ⚠️.
+  - No test covers the leaking formats / L4 / L5 / CLI / credential scope entries.
+- **RESULT:** 🔴 **BLOCKED**.
+- **FINAL STATUS:** **Open — awaiting next remediation + re‑audit.** (Whether a Round‑5 remediation occurred after my last message: `[UNKNOWN / NOT RECOVERED]`.)
+
+## TASK 5 — This handover/forensics request
+- **DATE/TIME:** current.
+- **OBJECTIVE:** Reconstruct complete XENON + Cline history for ChatGPT.
+- **FILES MODIFIED / CREATED:** **none.**
+
+**No other Cline tasks are recoverable.** `[UNKNOWN / NOT RECOVERED]` for any earlier Cline involvement.
+
+---
+
+# PART 4 — ACTUAL PROMPTS GIVEN TO CLINE
+
+I have the prompts substantially in context. Below are the verified instruction sets. Where I only have the essence, I mark it.
+
+## Prompt 1 — QA Round 1
+**Role line:** *"You are acting ONLY as the QA/Test Engineer for XENON Phase 01."*
+**Absolute rules (verbatim intent):**
+1. DO NOT modify any project files.
+2. DO NOT create, delete, rename, or move files.
+3. DO NOT redesign the architecture.
+4. DO NOT add new features.
+5. DO NOT fix any issue you discover.
+6. DO NOT modify README.md.
+7. DO NOT install new dependencies unless absolutely required just to execute existing tests; if a dependency is missing, STOP and report it.
+8. Your job is ONLY to inspect, test, and report.
+**Required work:** A–I as listed in Task 1 above.
+**Required output:** "FINAL OUTPUT: Give me a QA report only." with sections: architecture verification, test commands, test results, security test results, CLI verification, import verification, bugs/issues, severity (CRITICAL/HIGH/MEDIUM/LOW), whether issues block approval, exact evidence.
+**Cline result:** 16 findings; 60/60 tests; not approved.
+**Problems found afterward:** caused Round‑2 prompt.
+
+## Prompt 2 — QA Round 2 (verbatim key lines recovered)
+*"XENON PHASE 01 — CLINE QA ROUND 2 — POST-REMEDIATION SECURITY VERIFICATION"* … *"Claude Code has now implemented a remediation pass."* … *"Your job in this round is to VERIFY whether those fixes are actually correct."* … Rules 1–14 including *"Do not trust Claude's remediation report blindly"*, *"Independently reproduce the previous Cline findings"*, *"Look for regressions caused by the remediation"*, *"Keep all testing local and non-destructive."*
+Sections: architecture, test suite (×2), credential/secret logging, credential-bearing URL, target/scope enforcement, **critical target state/atomicity test**, fail-closed, scope normalization, logger robustness, file security, configuration, validation consistency, test quality, CLI, imports, code-quality/regression review, git integrity, final verdict (🟢/🟡/🔴).
+**Cline result:** found the CRITICAL non‑atomic state bug; 🔴 BLOCKED.
+
+## Prompt 3 — QA Round 3
+*"PHASE 01 — CLINE QA ROUND 3 — FINAL ADVERSARIAL SECURITY + REGRESSION VERIFICATION"*, with *"DO NOT TRUST CLAUDE'S REPORT. VERIFY EVERYTHING YOURSELF."* and 26 sections including R2‑1 atomic state (A–I scenarios), R2‑2 mandatory scope, scope adversarial, normalization audit, target validation, credential sanitization, **logger adversarial secret-leak testing**, **logger format-bypass/residual leak testing**, logger configuration, file utility security, settings, CLI (6 scenarios), imports, architecture, README, data contracts, code quality, git audit, regression test quality, severity, final verdict.
+**Cline result:** 🟡 CONDITIONAL PASS; 73/73.
+
+## Prompt 4 — QA Round 4 (Final Gate)
+*"PHASE 01 — CLINE QA ROUND-4 / FINAL SECURITY GATE"* … *"Do NOT trust Claude's remediation report. Independently inspect the actual current repository code, tests, README, CLI behavior, imports, and git state."* … *"Do NOT modify production code. Do NOT fix issues. Do NOT weaken tests. Do NOT rewrite architecture."*
+Claims to verify: *"M1 logger redaction gaps fixed; M2 FileOperationError double wrapping fixed; M3 regression coverage added; L1 unused validation imports removed; L4 status normalization fixed; L5 setup_logger level semantics fixed; 79 tests pass three times; CLI passes; imports pass; architecture preserved."*
+Sections 1–20 incl. the full M1 inline/parameterized/dict matrices, M2 exception identity, M3 test quality, L1–L5, atomic state A–H, mandatory scope, scope semantics, target validation, path security, credential leak audit, CLI (6 scenarios), imports, test suite ×3, determinism, README, git, final security review (A–J), severity, verdict.
+**Cline result:** 🔴 BLOCKED; M1 not fixed + new stderr leak; L4 not fixed.
+
+`[EXACT PROMPT NOT RECOVERED]` for any prompt that pre‑dates Round 1 (e.g., the original Phase‑1 implementation prompts given to Claude Code). Those were never in my context.
+
+---
+
+# PART 5 — PHASE 1 REBUILD
+
+## 5.1 Why Phase 1 was restarted `[CONFIRMED — from README]`
+The README author states an earlier rough DoD contained *"Attack Surface input, detector registry, executor, findings"* which *"was a mismatch with Phase 1's scope"*, and these were removed: *"Restarted Phase 1 ke liye woh hata diya hai, kyunki ab hum genuinely foundation se start kar rahe hain."*
+
+## 5.2 New architecture & rules `[CONFIRMED]`
+- Locked folder structure (Part 10).
+- Locked responsibilities per module.
+- Data contracts for Target and Scope (see Part 10/11).
+- Security rules: mandatory scope enforcement, explicit out-of-scope precedence, no secret logging, path boundary.
+- Implementation freedom only for names/dataclass usage.
+- **No new modules** ("'Naya module add kar deta hoon kyunki better lagega.' → ❌ No").
+
+## 5.3 What Phase 1 was supposed to accomplish `[CONFIRMED]`
+The 10 purpose points (Part 1.2) + README Definition of Done:
+Locked folder structure exists; README spec exists; Configuration system works; Target model works; Target Manager works; Scope model works; Scope Manager works; Target validation works; Scope validation works; Out-of-scope resources are rejected; Explicit out-of-scope rules take precedence; Centralized logging works; Common exceptions implemented; File utilities work; `main.py` initializes Phase 01 successfully; Automated tests implemented; Target/Scope/Validation tests pass; **No known critical foundation/security issue remains**; Code review completed; Cline regression testing completed; **User gives final approval.**
+
+## 5.4 Modules & files created `[CONFIRMED — as observed]`
+```
+phase01/
+├── README.md
+├── main.py
+├── config/settings.py
+├── config/defaults.py
+├── core/exceptions.py
+├── core/logger.py
+├── core/scope_manager.py
+├── core/target_manager.py
+├── models/scope.py
+├── models/target.py
+├── utils/file_utils.py
+├── utils/validation.py
+├── output/.gitkeep
+└── tests/
+    ├── test_target_manager.py
+    ├── test_scope_manager.py
+    ├── test_validation.py
+    ├── test_file_utils.py        (additive, justified)
+    └── test_logger_security.py   (additive, justified)
+```
+Plus `phase01/FINAL_HARDENING_REPORT.md` existed at commit `8fb30b1` and was **deleted** during remediation.
+
+Created by: `[LIKELY] Claude Code` (the implementer). `[UNKNOWN / NOT RECOVERED]` for exact authorship of initial commit.
+
+## 5.5 Implementation order `[LIKELY from dependency structure]`
+`exceptions` → `defaults` → `settings` → `validation` → `logger` → `models` → `file_utils` → `scope_manager` → `target_manager` → `main` → tests.
+
+## 5.6 Input/output contracts `[CONFIRMED]`
+- **Target dict:** `{"target": str, "created_at": ISO‑8601 str, "status": "active"|"inactive"}`
+- **Scope dict:** `{"in_scope": [str], "out_of_scope": [str]}`
+- **CLI:** `--target <url>`, `--scope <json-string>`.
+
+## 5.7 Configuration / state / errors / logging / testing
+See Parts 10, 11, 17.
+
+---
+
+# PART 6 — PHASE 1 MISTAKES / FINDINGS (COMPREHENSIVE)
+
+> IDs below are traced across rounds. "Round" indicates when Cline first reported it.
+
+### FINDING #1 — Credentials logged in plaintext (target URL)
+- **Round:** 1. **File:** `core/target_manager.py:30` (then).
+- **Problem:** logged the raw target URL *before* the credential check; `SensitiveDataFilter` did not cover `https://user:pass@host`.
+- **Evidence:** `[INFO] Validating target: https://bob:s3cr3tPASSWORD@example.com` then rejection.
+- **Severity:** HIGH. **Fix:** `_sanitize_url_for_log()` + URL-credential regex + reorder. **Fixed by:** Claude (Round‑2 remediation). **Retested:** ✅ Round 4 CLI grep = 0. **Status:** FIXED.
+
+### FINDING #2 — ScopeManager logged raw credential-bearing resource
+- **Round:** 1. **File:** `core/scope_manager.py` (normalization-failure logging + `OutOfScopeError` message).
+- **Evidence:** `[WARNING] Resource normalization failed for scope check: https://user:s3cr3tPASS@ evil.com`; exception message contained the raw resource twice.
+- **Severity:** HIGH. **Fix:** sanitized generic messages. **Retested:** ✅. **Status:** FIXED.
+
+### FINDING #3 — No Target ↔ Scope enforcement
+- **Round:** 1. **Files:** `main.py`, `core/target_manager.py`.
+- **Problem:** `enforce_scope` count in main.py = 0; `ScopeManager` refs in target_manager = 0, despite README §6.4 requiring "Coordinate with scope validation". CLI accepted an explicitly out-of-scope target as `active` with `Scope Enforcement: ENABLED`, exit 0.
+- **Severity:** HIGH. **Fix:** wired `ScopeManager` into `TargetManager` and `main`. **Status:** FUNCTIONALLY FIXED (Round‑2/3), but see #17 for the atomicity regression.
+
+### FINDING #4 — Dict-style parameterized logging leaked secrets
+- **Round:** 1. **File:** `core/logger.py`.
+- **Evidence:** `logger.info('%(token)s', {'token':'DICTARG_SECRET_XYZ'})` → `[INFO] DICTARG_SECRET_XYZ`.
+- **Severity:** HIGH. **Fix:** dict-args branch added. **Retested:** ✅. **Status:** FIXED.
+
+### FINDING #5 — Logger crashed on non-string messages
+- **Round:** 1. **File:** `core/logger.py:51/89` (then).
+- **Evidence:** `logger.info(12345)` → `TypeError: expected string or bytes-like object` escaping the log call.
+- **Severity:** MEDIUM. **Fix:** `str(record.msg)` coercion. **Retested:** ✅. **Status:** FIXED.
+
+### FINDING #6 — `validate_target()` did not reject credentials
+- **Round:** 1. **File:** `utils/validation.py`.
+- **Evidence:** `assertRaises(..., validate_target, 'https://user:pass@example.com')` → **"Exception not raised by validate_target"**.
+- **Severity:** MEDIUM. **Fix:** `if parsed.username or parsed.password: raise InvalidTargetError(...)`. **Retested:** ✅ (Round 4: both `validate_target` and `set_target` REJECT; 0 disagreements across 17 cases). **Status:** FIXED.
+
+### FINDING #7 — Scope rule normalization inconsistency
+- **Round:** 1. **File:** `core/scope_manager.py`.
+- **Evidence (old):** rule `EXAMPLE.COM` did not match `example.com`; URL-form entry `https://example.com` matched neither `example.com` nor itself.
+- **Severity:** MEDIUM (fail-closed but wrong). **Fix:** `_normalize_rule()` lowercases and extracts hostname from URL forms. **Retested:** ✅ Round 4. **Status:** FIXED.
+
+### FINDING #8 — `FileOperationError` double-wrapping
+- **Rounds:** 1 (found), 3 (still present), 4 (FIXED).
+- **File:** `utils/file_utils.py`.
+- **Evidence (old):** `FileOperationError: File not found: X` → re‑wrapped → `FileOperationError: Failed to read JSON file X: File not found: X`.
+- **Severity:** LOW/MEDIUM. **Fix:** `except FileOperationError: raise` in `verify_output_path`/`write_json_file`/`read_json_file`. **Retested:** ✅ Round 4 (`double=False` on all 7 paths; symlink included). **Status:** **FIXED.**
+
+### FINDING #9 — Unused imports
+- **Rounds:** 1, 3. **File:** `utils/validation.py:6` `from typing import Dict, Any, List`.
+- **Severity:** LOW. **Fix:** removed (Round‑4 remediation). **Retested:** ✅ (`grep typing` → none). **Status:** FIXED. **Residual:** unused `import os` in `tests/test_file_utils.py:7` (LOW, open as of Round 4).
+
+### FINDING #10 — Hardcoded / unused configuration
+- **Round:** 1. **Files:** `core/logger.py` (hardcoded `level="INFO"`), `config/defaults.py`/`settings.py`.
+- **Evidence:** `DEFAULT_LOG_LEVEL`, `app_name`, `app_version` stored but never consumed.
+- **Severity:** LOW/MEDIUM. **Fix (partial):** logger now reads `settings.log_level`. **Status:** PARTIAL — `DEFAULT_APP_NAME`/`DEFAULT_APP_VERSION` still unused.
+
+### FINDING #11 — Duplicated logic
+- **Rounds:** 1, 3, 4. **Files:** `core/scope_manager.py` (`_is_in_scope`/`_is_out_of_scope` identical loops; port checks repeated), `utils/validation.py` + `core/target_manager.py` (duplicate credential check).
+- **Severity:** LOW. **Status:** OPEN (accepted, not blocking).
+
+### FINDING #12 — Stale `FINAL_HARDENING_REPORT.md`
+- **Round:** 1. **Claims vs reality:** "Total Tests: 52 / Passing: 52" (actual 60 then); "No double-wrapping of FileOperationError" (false); "Remaining Limitations: None identified" (false); also not part of the locked structure.
+- **Severity:** LOW. **Fix:** file deleted in Round‑2 remediation. **Status:** RESOLVED.
+
+### FINDING #13 — Incomplete `models/target.py`
+- **Round:** 1. README §6.8 conceptually includes `scope` in the Target model; implementation omits it (data contract §12 also omits it → conditionally acceptable).
+- **Severity:** LOW. **Status:** ACCEPTED/deferred.
+
+### FINDING #14 — Missing important tests
+- **Rounds:** 1, 3, 4. Missing: CLI/main, credential-logging redaction, target↔scope coordination, rejected-target state integrity, uppercase/URL scope entries, dict-args & non-string logger, `read_json_file` errors, exception preservation, status normalization, `setup_logger` levels.
+- **Severity:** MEDIUM. **Status:** PARTIALLY ADDRESSED — Round‑3 added 4 target-manager + 4 validation tests; Round‑4 added 6 file_utils tests. **Still missing at Round 4:** logger colon/space variants, L4, L5, CLI, credential scope-entry (`validate_scope_entry`). Also weak: `test_ensure_directory_failure` (root-dependent), `test_write_json_file_sibling_escape` (actually tests parent escape, misnamed).
+
+### FINDING #15 — `enforce_scope` exception handling
+- **Rounds:** 1, 3. **File:** `core/scope_manager.py` (catches `OutOfScopeError` and re-raises its own).
+- **Severity:** LOW. **Fix:** sanitized (no secrets) but still wraps its own error → generic chained message. **Status:** PARTIAL.
+
+### FINDING #16 — Validation/manager centralization
+- **Round:** 1. `TargetManager.set_target` called `_is_valid_target` while `validate_target` existed → duplication. **Status:** RESOLVED (manager now calls `validate_target`).
+
+### FINDING #17 — 🚨 CRITICAL: Non‑atomic target state (state mutated before scope enforcement)
+- **Round:** 2. **File:** `core/target_manager.py` — mutation at line 46, scope check at lines 49–51.
+- **Problem:** an out-of-scope target was stored as `Target(..., status='active')` *before* the scope check raised; a previously valid target was overwritten.
+- **Evidence:** `AFTER REJECTION get_target() => Target(target='https://payments.example.com', ..., status='active')`; `after FAILED replacement => https://payments.example.com`; `PREVIOUS PRESERVED? False`.
+- **Severity:** 🔴 CRITICAL. **Recommended fix:** validate into a local, assign only after all checks. **Fix applied by:** Claude (Round‑3 remediation) — mutation moved to line 65, scope manager made mandatory (line 37–38). **Retested:** ✅ Round 3 & Round 4 (A–H all correct; `grep '_current_target ='` → lines 65 & 112 only). **Status:** **FIXED.**
+
+### FINDING #18 — Scope enforcement opt‑in / bypassable
+- **Round:** 2. `TargetManager(scope_manager=None)` performed no scope check; defaults and tests used it.
+- **Severity:** HIGH. **Fix:** hard fail at `target_manager.py:37-38` (`"ScopeManager is required - scope enforcement is mandatory"`). **Retested:** ✅ Round 4. **Status:** FIXED.
+
+### FINDING #19 — 🚨 M1: Logger redaction gaps (Round‑4, still OPEN)
+- **Round:** 4. **File:** `core/logger.py`.
+- **19a — Inline whitespace-before-separator leak (20 cases):** `SENSITIVE_PATTERNS[0]` (line 17) is `(...)[:=]\s*([a-zA-Z0-9_@\-]+)` — requires the separator immediately after the key, so `token : SECRET` and `token = SECRET` are not redacted. Applies to all 10 keys (`token, password, api_key, api-key, Authorization, Cookie, secret, auth_token, access_token, X-Api-Key`).
+  Evidence: `[INFO] token : LKVAL9X`, `[INFO] token = LKVAL9X`.
+- **19b — 🚨 Parameterized header patterns leak secret to stderr + break logging:** `SENSITIVE_PATTERNS[2]` (line 19) `(Cookie|Authorization)[:=]\s*([^\r\n]+)` consumes the trailing `%s` in `record.msg` (line 39) before formatting, while `record.args` still holds the secret → Python logging raises and prints args.
+  Evidence: `logger.info("Authorization: %s","STDERR_SECRET_42")` → stdout empty; stderr:
+  ```
+  --- Logging error ---
+  TypeError: not all arguments converted during string formatting
+  Message: 'Authorization=REDACTED'
+  Arguments: ('STDERR_SECRET_42',)
+  ```
+  Same for `Cookie: %s` and `Authorization: Bearer %s`; `LOGGING_ERRORS: 6`, `STDERR_LEAKED: ['SEC6ZZ','SEC8ZZ','SEC11ZZ']`.
+- **19c — Generalization:** leaks also for `SECRET_KEY:`, `session:`, `pass:`, `credential:`, `private_key:`.
+- **Severity:** 🔴 HIGH (security control leaks; required test cases fail).
+- **Note on exploitability:** no Phase‑01 production logger call uses these formats (`[CONFIRMED]` via `grep logger.` audit) — all use f-strings of sanitized values. So no *live* leak yet.
+- **Status:** **OPEN — BLOCKING.**
+
+### FINDING #20 — M2: `FileOperationError` double-wrap (Round‑4) — FIXED (see #8).
+
+### FINDING #21 — L4: Status normalization NOT fixed
+- **Round:** 4. **File:** `core/target_manager.py`.
+- **Problem:** `set_target` validates the **raw** `status` at line 56 (against lowercase `ALLOWED_TARGET_STATUSES`) and only lowercases at line 65; `update_status` lowercases first (line 102). Required order is normalize → validate → store.
+- **Evidence:** `set_target`: `'ACTIVE'→REJECT`, `'Active'→REJECT`, `'INACTIVE'→REJECT`, `'InActive'→REJECT`; `update_status`: `'ACTIVE'/'Active'/'INACTIVE'/'InActive'` → ACCEPT.
+- **Severity:** MEDIUM. **Status:** **OPEN** (contradicts the remediation claim).
+
+### FINDING #22 — L5: `setup_logger` explicit `INFO` ambiguity
+- **Round:** 4. **File:** `core/logger.py:100`.
+- **Code:** `numeric_level = getattr(logging, level.upper(), logging.INFO) if level != "INFO" else getattr(logging, config_level.upper(), logging.INFO)`.
+- **Evidence:** explicit `DEBUG/WARNING/ERROR/CRITICAL` honored (10/30/40/50); but `setup_logger("x", level="INFO")` under `settings.log_level="WARNING"` → level 30 (explicit INFO ignored).
+- **Severity:** MEDIUM/LOW. **Status:** **OPEN (PARTIAL)**.
+
+### FINDING #23 — Residual leaks NOT covered by tests
+- **Round:** 4. `test_logger_security.py`'s only colon messages are `"Authorization: Bearer ABC123SECRET"`, `"Cookie: sessionid=SECRET123"`, `"Authorization: SECRET123"` — all inline, none with `%s`, none with a space before the separator. No L4/L5/CLI/credential-scope-entry tests.
+- **Severity:** HIGH (green suite gives false assurance). **Status:** **OPEN.**
+
+---
+
+# PART 7 — PHASE 1 CODE REVIEW HISTORY (chronological)
+
+### Review Round 1
+- **Reviewed:** all 11 modules, 5 test files, README, hardening report.
+- **Architecture checked:** locked structure ✅; `output/.gitkeep` ✅ (initially thought missing, then confirmed present).
+- **Logic checked:** validation, scope matching, wildcard semantics, path logic.
+- **Error handling:** broad `except Exception` re-wrapping; logger TypeError.
+- **Security checked:** credential logging, scope leaks, path traversal, hardcoded bypass (grep).
+- **Edge cases:** empty/None/whitespace/malformed/uppercase/ports.
+- **Integration:** target↔scope absent.
+- **Findings:** #1–#16. **Result:** not approved.
+
+### Review Round 2
+- **Reviewed:** diff set (logger, scope_manager, target_manager, main, test_logger_security, validation).
+- **Findings:** #1–#7 FIXED; **#17 CRITICAL regression**, #18. **Result:** 🔴 BLOCKED.
+
+### Review Round 3
+- **Reviewed:** full tree; new tests.
+- **Findings:** #17 FIXED, #18 FIXED, #8 still open, #9 still open, #11, #14. **Result:** 🟡 CONDITIONAL PASS (73/73).
+
+### Review Round 4
+- **Reviewed:** full tree; test quality; git hygiene; README compliance; data contracts.
+- **Findings:** #8/#9 FIXED; **#19 (M1) OPEN**, #21 (L4) OPEN, #22 (L5) PARTIAL, #23 OPEN. **Result:** 🔴 BLOCKED (79/79).
+
+---
+
+# PART 8 — AUDIT / VALIDATION RESULTS (exact)
+
+| TEST | COMMAND | EXPECTED | ACTUAL | PASS/FAIL |
+|---|---|---|---|---|
+| R1 suite ×2 | `python3 -m unittest discover -s phase01/tests -v` | all pass | Ran 60, OK ×2 | ✅ |
+| R2 suite ×2 | same | all pass | Ran 65, OK ×2 | ✅ |
+| R3 suite ×3 | same | all pass | Ran 73, OK ×3 | ✅ |
+| R4 suite ×3 | same | all pass | Ran 79, OK ×3 | ✅ |
+| CLI default | `python3 -m phase01.main` | exit 0 | exit 0, success | ✅ |
+| CLI in-scope | `--target https://api.example.com` | exit 0 | exit 0 | ✅ |
+| CLI out-of-scope | `--target https://payments.example.com` | non-zero | exit 1, rejected | ✅ |
+| CLI credentials | `--target 'https://bob:s3cr3tPASSWORD@example.com'` | non-zero, no secret | exit 1, log `https://example.com`, grep=0 | ✅ |
+| CLI malformed | `--target 'not-a-url'` | non-zero | exit 1 | ✅ |
+| CLI bad JSON | `--scope '{bad json'` | non-zero | exit 1 | ✅ |
+| CLI empty scope | `--scope '{"in_scope":[]}'` | non-zero | exit 1 | ✅ |
+| Imports | `python3 -c "import importlib; ...11 modules..."` | ok | `ALL IMPORTS OK: 11` | ✅ |
+| Logger matrix | captured StringIO handler | no secrets | mandated formats pass; colon/space + `%s` header fail | ❌ (R4) |
+| Path traversal | verify/write | blocked | blocked | ✅ |
+| Symlink escape | `o/"lnk"/"e.json"` | blocked | blocked | ✅ |
+| Atomic state A–H | manual | state preserved | all correct | ✅ (R3/R4) |
+| Mandatory scope | `TargetManager()` | reject | reject | ✅ (R3/R4) |
+| Data contracts | `to_dict/from_dict` | schema | matches | ✅ |
+| Git hygiene | `git status --short` | no QA changes | only Claude's edits; 0 untracked | ✅ |
+
+**Environment/tooling issues encountered by Cline** `[CONFIRMED]`:
+- `python` binary **not installed** → `python -m ...` fails with **exit code 127**. `python3` = **3.10.12** at `/usr/bin/python3`. `/home/kunal/Xenon/myenv/bin/python` is a symlink to `/usr/bin/python3`.
+- The command runner frequently failed to capture stdout ("command completion could not be observed"/"proceed while running"). Workaround: redirect output to deterministic files under `/tmp` and read them; avoid pipes/heredocs; keep commands short; use `python3 -c "$(printf '%s\n' 'line' ...)"` for multi-line scripts.
+
+---
+
+# PART 9 — ARCHITECTURE REVIEW
+
+**Good decisions:**
+- Clear module separation (config/core/models/utils) with locked contracts.
+- Centralized logger + custom exception hierarchy.
+- Scope matching is structural (not string-contains) — resistant to suffix attacks (`example.com.evil.com`, `evil-example.com` rejected).
+- `Path.resolve()` + `is_relative_to()` path boundary (blocks traversal, siblings, symlinks).
+- Fail-closed unloaded scope.
+- Target dataclass with ISO‑8601 UTC `created_at`.
+
+**Bad / risky decisions found:**
+- **Security check ordering** (mutation before validation) → FIXED (#17).
+- **Opt-in security dependency** (`scope_manager=None`) → FIXED (#18).
+- **Logging-before-sanitization** → FIXED (#1).
+- **Over-broad `except Exception`** re-wrapping → partially FIXED (#8).
+- **Heuristic regex redaction** is inherently incomplete and now self-destructs on `%s` → OPEN (#19).
+- **Duplicated logic** in scope loops / credential checks / port checks → OPEN (#11).
+- **Two APIs disagree on status normalization** → OPEN (#21).
+
+**Missing abstractions / coupling:**
+- `utils/file_utils.py` depends on `config.settings` (lazy import inside `write_json_file`) — coupling utils→config.
+- No single "target activation" choke point enforced at construction (mitigated by #18 fix).
+- Scope model (`in_scope`/`out_of_scope` lists only) is minimal per README.
+
+**Over/under-engineering:** Phase 1 is appropriately minimal; no over-engineering observed. `FINAL_HARDENING_REPORT.md` was an unrequested extra artifact [LOW].
+
+---
+
+# PART 10 — FILE-BY-FILE INVENTORY
+
+### `phase01/README.md`
+- **PURPOSE:** Authoritative Phase‑01 spec (v1.0), locked architecture/responsibilities/security/data contracts/DoD.
+- **STATUS:** unmodified by QA/Claude throughout `[CONFIRMED]`.
+
+### `phase01/main.py`
+- **PURPOSE:** CLI entry point / initialization.
+- **CONTENT (final):** imports `sys, json, argparse`; `logger, TargetManager, ScopeManager, XenonException, settings, DEFAULT_TARGET_URL, DEFAULT_SCOPE_CONFIG`; `main()` parses `--target`/`--scope`, `json.loads` scope (raises `XenonException("Invalid JSON scope provided: …")`), creates `ScopeManager` then `TargetManager(scope_manager=scope_mgr)`, `scope_mgr.load_scope(scope_config)`, `target_mgr.set_target(target_url)`, logs status block (`Target Status`, `Scope Enforcement: ENABLED`, `initialized successfully`); `except XenonException` → `logger.error` + `sys.exit(1)`; `except Exception` → `logger.error("Unexpected error…")` + `sys.exit(1)`.
+- **KNOWN ISSUES:** none.
+
+### `phase01/config/defaults.py` (final, verbatim)
+```python
+from pathlib import Path
+DEFAULT_APP_NAME = "XENON"
+DEFAULT_APP_VERSION = "1.0.0"
+DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
+DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_TARGET_STATUS = "active"
+INACTIVE_TARGET_STATUS = "inactive"
+ALLOWED_TARGET_STATUSES = {DEFAULT_TARGET_STATUS, INACTIVE_TARGET_STATUS}
+SUPPORTED_SCHEMES = {"http", "https"}
+DEFAULT_TARGET_URL = "https://example.com"
+DEFAULT_SCOPE_CONFIG = {"in_scope": ["example.com", "*.example.com"], "out_of_scope": ["payments.example.com"]}
+```
+- **KNOWN ISSUES:** `DEFAULT_APP_NAME`/`DEFAULT_APP_VERSION` unused.
+
+### `phase01/config/settings.py`
+- `class Settings`: `_settings` dict keys `app_name, app_version, output_dir, log_level, default_target_status`; `get(key, default=None)`, `set(key, value)` (raises `ConfigurationError` on empty key), `update(dict)` (raises on non-dict), `output_dir` property (getter coerces str→Path; setter), module global `settings = Settings()`.
+
+### `phase01/core/exceptions.py` (verbatim)
+```python
+class XenonException(Exception): pass
+class InvalidTargetError(XenonException): pass
+class InvalidScopeError(XenonException): pass
+class OutOfScopeError(XenonException): pass
+class ConfigurationError(XenonException): pass
+class FileOperationError(XenonException): pass
+```
+
+### `phase01/models/target.py`
+- `@dataclass Target`: `target: str`, `created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())`, `status: str = DEFAULT_TARGET_STATUS`; `to_dict()`, `from_dict()`. **Issues:** no `scope` field (#13).
+
+### `phase01/models/scope.py`
+- `@dataclass Scope`: `in_scope: List[str] = field(default_factory=list)`, `out_of_scope: List[str] = field(default_factory=list)`; `to_dict()`, `from_dict()`.
+
+### `phase01/core/logger.py` (final)
+- `class SensitiveDataFilter(logging.Filter)`:
+  - `SENSITIVE_PATTERNS` (4): (1) `(password|passwd|pwd|token|api[_-]?key|access[_-]?token|secret|auth[_-]?token)[:=]\s*([a-zA-Z0-9_@\-]+)` IGNORECASE; (2) `(Bearer|Basic)\s+([a-zA-Z0-9\+\/_\-.=]+)`; (3) `(Cookie|Authorization)[:=]\s*([^\r\n]+)`; (4) `(https?://)([^:@/]+:[^@/]+@)`.
+  - `SECRET_FORMAT_PATTERNS` (5): key `[:=]`/`is` + `%s`; `Bearer\s+%s`; `Basic\s+%s`; `%\((token|password|...)\)s`.
+  - `filter(record)`: str-ifies non-str `msg`; redacts inline; handles tuple/list and dict args (dict uses `_is_secret_key`).
+  - `_has_secret_format`, `_is_secret_key`, `_redact_pattern` (special-cases URL pattern; uses `\1=REDACTED` when pattern contains `=`/`:` else `\1 REDACTED`).
+- `setup_logger(name="XENON", level="INFO")`: early-returns if handlers exist; reads `settings.log_level`; computes `numeric_level`; StreamHandler(stdout) + formatter `[%(levelname)s] %(message)s`; adds `SensitiveDataFilter` to **both** handler and logger; `propagate=False`.
+- Module-level `logger = setup_logger()`.
+- **KNOWN ISSUES:** #19 (a/b/c), #22.
+
+### `phase01/core/target_manager.py` (final)
+- `class TargetManager(scope_manager=None)`; `set_target(target_url, status=None)`:
+  line 37–38 require scope manager; 40–41 default status; 44–45 sanitized log; 48 `validate_target`; 50–53 credential check; 55–57 raw status check; 59–62 scope check; **65 mutation** `self._current_target = Target(target=target_url.strip(), status=status.lower())`; 68 success log.
+- `_sanitize_url_for_log(url)` (strips credentials, preserves scheme/host/port/path/query/fragment; `except Exception: pass`).
+- `get_target()`, `get_target_url()`, `update_status(status)` (line 102 `status.lower()` then validate then mutate), `clear()`.
+- **KNOWN ISSUES:** #21 (status ordering), #11 (duplicate credential check), #10-residual.
+
+### `phase01/core/scope_manager.py`
+- `class ScopeManager`: `load_scope(scope_dict)` (validates via `validate_scope`, normalizes rules); `_normalize_rule(rule)` (lowercases; URL→hostname); `enforce_scope(resource)` (fail-closed if unloaded; wraps its own error); `is_in_scope(resource)`; `_normalize_resource(resource)` (strips; URL→hostname+port validation; bare host parsed as `http://`+resource); `_is_out_of_scope`, `_is_in_scope`; `_matches_rule(resource_host, rule)` (exact; `*.domain` subdomain-only; label validation; rejects bare root/adjacent dots/`evil-example.com`/`example.com.evil.com`).
+- **KNOWN ISSUES:** #11 (duplicate loops), #15 (self-wrapping), and `enforce_scope` accepts credential-bearing URL if host is in scope (INFO — not exploitable because `set_target` rejects).
+
+### `phase01/utils/validation.py` (final)
+- `validate_target(target)`; `_is_valid_hostname(hostname)`; `validate_scope_entry(entry)`; `validate_scope(scope_dict)`.
+- Credential rejection at lines 50–51. Typing import removed (L1 fixed).
+- `validate_scope_entry` accepts URL form (delegates to `validate_target`) and wildcard `*.domain`.
+
+### `phase01/utils/file_utils.py` (final)
+- `ensure_directory(path)`; `verify_output_path(file_path, base_dir)` (resolve + `is_relative_to`, re-raises `FileOperationError` unchanged); `write_json_file(file_path, data)` (uses `settings.output_dir`, delegates to `verify_output_path`, `except FileOperationError: raise`); `read_json_file(file_path)`.
+- **Status:** path boundary + single-wrap verified.
+
+### `phase01/tests/*` (final counts and names)
+- `test_target_manager.py` (21), `test_scope_manager.py` (16), `test_validation.py` (15), `test_file_utils.py` (13), `test_logger_security.py` (14). Names listed in Part 3/8 context above.
+
+### `phase01/output/.gitkeep` — present, empty `output/` otherwise.
+
+### `phase01/FINAL_HARDENING_REPORT.md`
+- **CREATED BY:** `[LIKELY] Claude Code` (present at commit `8fb30b1`).
+- **CONTENT:** claimed 52 tests, no double-wrap, "Remaining Limitations: None identified", "PHASE 01: EXCELLENT / PRODUCTION-GRADE READY".
+- **STATUS:** **DELETED** in working tree (tracked deletion, not committed). Findings #12 resolved.
+
+### `.vscode/settings.json`, `requirements.txt` (root)
+- **`requirements.txt`:** existed; **contents `[UNKNOWN / NOT RECOVERED]`** (never read). No dependencies were installed or needed for tests (stdlib only).
+
+---
+
+# PART 11 — MODULE DEPENDENCIES (verified imports)
+
+```
+main.py
+ → core.logger.logger
+ → core.target_manager.TargetManager  → models.target.Target
+                                       → utils.validation.validate_target → config.defaults.SUPPORTED_SCHEMES
+                                                                           → core.exceptions.InvalidTargetError/InvalidScopeError
+                                       → core.exceptions.InvalidTargetError
+                                       → core.logger.logger
+                                       → config.defaults.ALLOWED_TARGET_STATUSES, DEFAULT_TARGET_STATUS
+                                       → config.settings.settings
+                                       → core.scope_manager.ScopeManager
+ → core.scope_manager.ScopeManager    → models.scope.Scope
+                                       → utils.validation.validate_scope
+                                       → core.exceptions.InvalidScopeError, OutOfScopeError
+                                       → core.logger.logger
+ → core.exceptions.XenonException
+ → config.settings.settings           → config.defaults.*
+                                       → core.exceptions.ConfigurationError
+ → config.defaults.DEFAULT_TARGET_URL, DEFAULT_SCOPE_CONFIG
+
+config.settings → config.defaults → (pathlib)
+config.defaults → (pathlib)
+core.logger → (stdlib) + lazy `config.settings` inside setup_logger
+utils.file_utils → core.exceptions.FileOperationError + lazy `config.settings` inside write_json_file
+models.target → config.defaults.DEFAULT_TARGET_STATUS
+models.scope → (stdlib only)
+```
+**No circular imports** `[CONFIRMED — 11/11 modules import]`.
+
+**Data flow:** CLI args → scope JSON → `ScopeManager.load_scope` → `TargetManager.set_target` → `validate_target` → credential check → status check → `scope.is_in_scope` → mutate `_current_target` → status log.
+**JSON flow:** Target/Scope `to_dict()` ⇄ `from_dict()`; `write_json_file`/`read_json_file` for output.
+
+---
+
+# PART 12 — DEBUGGING HISTORY
+
+1. **`python` not found (exit 127)** — Symptom: prescribed commands failed. Root cause: only `python3` (3.10.12) installed. Fix: used `python3`. Reported as environment note, not a project defect.
+2. **Logger `TypeError: expected string or bytes-like object`** on `logger.info(12345)` — Symptom: exception escaped the log call. Root cause: `re.sub` on non-str `record.msg`. Fix (Claude): str-coerce. Fixed ✅.
+3. **`TypeError: not all arguments converted during string formatting` + stderr leak** (Round 4) — Root cause: `SENSITIVE_PATTERNS[2]` consumes `%s` in `record.msg`, leaving stale `record.args`. Fix: **none yet**. OPEN.
+4. **`FileOperationError` chained twice** — Root cause: broad `except Exception` re-wrap. Fix: `except FileOperationError: raise`. Fixed ✅.
+5. **Non-atomic state** — Root cause: assignment before checks. Fix: reorder + mandatory scope. Fixed ✅.
+6. **Runner stdout capture failures** — Workaround: redirect to `/tmp` files; short commands; avoid pipes/heredocs.
+
+---
+
+# PART 13 — SECURITY REVIEW HISTORY
+
+- **Credential logging:** target URL (#1), scope raw resource (#2), dict args (#4), colon/space inline (#19a), parameterized header → **stderr leak** (#19b). #1/#2/#4 FIXED; #19a/#19b **OPEN**.
+- **Credential acceptance:** `validate_target` accepted creds (#6) → FIXED; CLI now rejects (#1/#6).
+- **Scope enforcement:** absent (#3) → opt-in (#18) → mandatory & fail-closed (FIXED), with atomicity regression (#17) FIXED.
+- **Path boundary:** traversal/absolute/sibling/parent/symlink all blocked `[CONFIRMED]`; no bypass.
+- **Injection/command execution:** no `eval/exec/subprocess/shell=True` in code `[CONFIRMED grep]`.
+- **Hardcoded bypass:** none `[CONFIRMED]`.
+- **False-positive concerns:** wildcard must not match bare root — verified correct.
+- **Config/secrets:** no secret material in repo; `FINAL_HARDENING_REPORT.md` overclaimed (removed).
+
+---
+
+# PART 14 — BUG BOUNTY / SECURITY ENGINE CAPABILITIES
+
+| CAPABILITY | PHASE | STATUS |
+|---|---|---|
+| Target management | 01 | ✅ IMPLEMENTED |
+| Scope management + enforcement | 01 | ✅ IMPLEMENTED |
+| Target validation | 01 | ✅ IMPLEMENTED |
+| Centralized logging + redaction | 01 | ⚠️ PARTIALLY IMPLEMENTED (redaction gaps #19) |
+| Common exceptions | 01 | ✅ IMPLEMENTED |
+| File/output utilities + path boundary | 01 | ✅ IMPLEMENTED |
+| CLI initialization | 01 | ✅ IMPLEMENTED |
+| Subdomain/DNS enumeration, port scanning, tech detection, directory/endpoint/parameter discovery, authz/authn testing, IDOR, SQLi/XSS/SSRF/CMDi detection, detector execution, AI decision-making, exploit/payload generation, HTTP fuzzing | 02+ | **PLANNED / EXCLUDED from Phase 01** `[CONFIRMED from README]` |
+
+No vulnerability-scanning logic exists in Phase 01 `[CONFIRMED]` — verified indirectly by file inventory and exclusion greps.
+
+---
+
+# PART 15 — RELATIONSHIP WITH CLAUDE
+
+- **Claude Code = implementer/fixer.** `[CONFIRMED]` from the Round‑2 prompt and from observable uncommitted diffs after each QA round.
+- **Cline = independent QA/verifier/reviewer.** Never implemented.
+- **Overlap:** Cline diagnosed root causes and gave exact reproduction commands + recommended fixes; Claude applied them. Cline **always re‑verified** fixes (and caught a critical regression Claude introduced in Round 2).
+- **Did Claude review Cline?** `[UNKNOWN / NOT RECOVERED]`.
+- **Handover mechanism:** Kunal relays Cline's QA reports to the implementing agent, then pastes the next QA prompt to Cline. `[LIKELY]`
+
+---
+
+# PART 16 — RELATIONSHIP WITH KUNAL + CHATGPT
+
+- **Kunal:** project owner; supplies prompts; approves phases; provided the Hinglish README notes. `[CONFIRMED]`
+- **ChatGPT:** `[MEMORY / UNVERIFIED]` — believed to be the architecture/spec/orchestration layer (the prompts read as ChatGPT-authored), but I have **no direct evidence** in my context. Mark `[UNKNOWN / NOT RECOVERED]` for specifics.
+- **User's own statement (current request):** *"some previous ChatGPT conversation history was lost"* → confirms ChatGPT holds design history not visible to me. `[CONFIRMED]`
+
+Development chain (as supported by evidence):
+```
+Kunal (+ ChatGPT architecture/spec) → phase01/README.md v1.0 (locked)
+→ Claude Code implements phase01/ (commit 8fb30b1)
+→ Cline QA Round 1 (report) → Claude remediation
+→ Cline QA Round 2 (found CRITICAL regression) → Claude remediation
+→ Cline QA Round 3 (CONDITIONAL PASS) → Claude remediation
+→ Cline QA Round 4 (BLOCKED; logger still broken) → [next round UNKNOWN]
+```
+
+---
+
+# PART 17 — DEVELOPMENT RULES OBSERVED
+
+**From the QA prompts (rules imposed on Cline):**
+- Do NOT modify project files / do NOT create, delete, rename, move files.
+- Do NOT fix issues; do NOT redesign architecture; do NOT add features.
+- Do NOT modify README.md; do NOT modify tests; do NOT weaken tests.
+- Do NOT install dependencies unless absolutely required (report if missing).
+- Do NOT commit or push.
+- Do NOT accept a green test suite as proof; use adversarial tests + code inspection.
+- Do NOT trust the remediation report; reproduce findings independently.
+- Testing must be local and non-destructive.
+- Severity classification: CRITICAL / HIGH / MEDIUM / LOW / INFO.
+- Verdicts: 🟢 PASS / 🟡 CONDITIONAL PASS / 🔴 BLOCKED with defined criteria.
+
+**From `phase01/README.md`:**
+- Locked architecture, responsibilities, scope boundary, data contracts, security rules, DoD.
+- Scope enforcement is mandatory; do not bypass Scope Manager checks.
+- Out-of-scope resources must never be treated as valid assessment targets.
+- Sensitive information (credentials, tokens, cookies, secrets) must not be logged.
+- No future-phase functionality; do not add new modules; consume Phase‑01 contracts rather than bypassing them.
+
+---
+
+# PART 18 — CHANGES OVER TIME
+
+1. **Before:** commit `e7ef578` "Initial project setup".
+2. **Decision:** Phase 1 restarted from genuine foundation; earlier rough DoD items (attack surface input, detector registry, executor, findings) removed.
+3. **Implementation:** commit `8fb30b1` "Complete Phase 01 foundation and target management" (HEAD/origin/main). Includes `FINAL_HARDENING_REPORT.md`.
+4. **Review R1:** 60 tests; 16 findings; not approved.
+5. **Fix pass 1 (Claude):** credential sanitization, dict logging, non-str logging, scope normalization, validate_target creds, file-utils partial, logger reads settings, TargetManager scope hook, `FINAL_HARDENING_REPORT.md` deleted.
+6. **Problem discovered R2:** **non-atomic state** (critical) + opt-in scope.
+7. **Fix pass 2 (Claude):** mandatory ScopeManager; state mutation moved to line 65; added 4 target + 4 validation tests.
+8. **Review R3:** 73 tests; CONDITIONAL PASS.
+9. **Fix pass 3 (Claude):** M1 regex expansion (`[:=]\s*`), M2 re-raise, L1 import removal, L4 attempt (failed), L5 attempt (partial), added 6 file_utils tests.
+10. **Review R4:** 79 tests; **M1 still leaks (incl. new stderr leak), L4 unfixed**; 🔴 BLOCKED.
+
+---
+
+# PART 19 — CURRENT XENON STATE KNOWN TO CLINE
+
+- **Repo:** `/home/kunal/Xenon`, branch `main`, remote `https://github.com/Kunal0229/XENON.git`.
+- **HEAD:** `8fb30b1` "Complete Phase 01 foundation and target management" (also `e7ef578` initial).
+- **Working tree (as of Round 4, uncommitted):**
+  ```
+   D phase01/FINAL_HARDENING_REPORT.md
+   M phase01/core/logger.py
+   M phase01/core/scope_manager.py
+   M phase01/core/target_manager.py
+   M phase01/main.py
+   M phase01/tests/test_file_utils.py
+   M phase01/tests/test_logger_security.py
+   M phase01/tests/test_target_manager.py
+   M phase01/tests/test_validation.py
+   M phase01/utils/file_utils.py
+   M phase01/utils/validation.py
+  ```
+  Untracked: 0. `README.md` unmodified. `models/`, `config/`, `core/exceptions.py` unchanged.
+- **Current phase:** Phase 01 (Foundation & Target Management).
+- **Tests:** 79/79 pass, deterministic ×3.
+- **Status:** 🔴 **BLOCKED** — logger redaction (M1) leaks; L4 status normalization open.
+- **WIP / pending:** logger filter redesign; L4 fix; L5 sentinel; missing tests; commit decision.
+- **Next task (Cline's recommendation):** fix logger so redaction can never consume `%s`/leave stale `args`, accept optional whitespace around `:`/`=`, then fix L4/L5 and add tests, then re‑run the gate.
+- **Post‑Round‑4 events:** `[UNKNOWN / NOT RECOVERED]` — I cannot confirm whether a Round‑5 remediation happened.
+
+---
+
+# PART 20 — COMPLETED WORK THAT MUST NOT BE REPEATED
+
+`[CONFIRMED complete]`
+- Phase‑01 folder structure + `output/.gitkeep`.
+- `config/defaults.py`, `config/settings.py` (Settings class + global `settings`).
+- `core/exceptions.py` (6-class hierarchy).
+- `models/target.py`, `models/scope.py` (dataclasses + to/from dict).
+- `utils/validation.py` (`validate_target`, `_is_valid_hostname`, `validate_scope_entry`, `validate_scope`) **including credential rejection**.
+- `utils/file_utils.py` (`ensure_directory`, `verify_output_path`, `write_json_file`, `read_json_file`) **including path boundary + single-wrap**.
+- `core/logger.py` (`SensitiveDataFilter`, `setup_logger`, module `logger`) — base functionality; do not rebuild from scratch, only patch redaction.
+- `core/scope_manager.py` (normalization, fail-closed, strict wildcard matching, precedence).
+- `core/target_manager.py` (mandatory ScopeManager, atomic mutation, sanitized logging).
+- `main.py` (CLI + init + exit codes).
+- **Fixes already verified:** #1–#9, #12, #15(partial), #16, #17, #18, #20 (M2).
+- **Audits already performed:** 4 QA rounds with evidence.
+- **Test infrastructure:** 5 test files, 79 tests.
+
+---
+
+# PART 21 — REMAINING WORK (BACKLOG)
+
+**CRITICAL**
+- **Fix M1 logger redaction (#19):** (a) never consume `%`/`%(…)s` placeholders; (b) allow optional whitespace around `:`/`=`; (c) guarantee a formatting failure can never dump `record.args`. Files: `core/logger.py`. Deps: none. Status: OPEN → BLOCKS approval.
+- **Add regression tests** for the leaking formats (`key : SECRET`, `key = SECRET`, `Authorization: %s`, `Cookie: %s`, `Authorization: Bearer %s`). Files: `tests/test_logger_security.py`.
+
+**HIGH**
+- Commit/verify decision for the uncommitted remediation (`git` state currently dirty).
+
+**MEDIUM**
+- **L4:** normalize status before validation in `set_target` (or validate `status.lower()`).
+- **L5:** sentinel default for `setup_logger(level=...)` so explicit `"INFO"` is honored.
+- Add tests: status matrix for both APIs; `setup_logger` level matrix; CLI exit codes; `validate_scope_entry(<credential URL>)`; `read_json_file` errors; exception preservation.
+- Make `test_ensure_directory_failure` root-safe; repair/rename `test_write_json_file_sibling_escape`.
+
+**LOW**
+- Remove unused `import os` in `tests/test_file_utils.py`.
+- De-duplicate `_is_in_scope`/`_is_out_of_scope`, credential check, port checks.
+- Replace bare `except Exception: pass` in `_sanitize_url_for_log`.
+- Resolve unused `DEFAULT_APP_NAME`/`DEFAULT_APP_VERSION`.
+- Reconsider `enforce_scope` self-wrapping.
+
+**FUTURE**
+- Phase 02+ (recon, discovery, detectors, reporting, AI reasoning) — must consume Phase‑01 contracts.
+
+---
+
+# PART 22 — KNOWN UNCERTAINTIES
+
+- `[UNKNOWN / NOT RECOVERED]` Old XENON (pre-rebuild) — any code, repo, or history.
+- `[UNKNOWN / NOT RECOVERED]` Exact prompts given to Claude Code for Phase‑1 implementation and each remediation pass.
+- `[UNKNOWN / NOT RECOVERED]` ChatGPT's exact role/artifacts (architecture docs beyond `phase01/README.md`).
+- `[UNKNOWN / NOT RECOVERED]` `requirements.txt` contents and whether any third‑party libs are intended.
+- `[UNKNOWN / NOT RECOVERED]` Whether a Round‑5 remediation/re‑audit occurred after Round 4.
+- `[UNKNOWN / NOT RECOVERED]` Authorship of commit `e7ef578` and `8fb30b1`.
+- `[UNKNOWN / NOT RECOVERED]` Precise timestamps of the 4 QA rounds (environment date 19/09/2026; file mtimes ~Sep 16 2026).
+- `[MEMORY / UNVERIFIED]` That prompts were authored by ChatGPT.
+- `[LIKELY]` Claude Code is the sole implementer; Cline never modified production code.
+- `[CONFIRMED]` Final Round‑4 verdict = 🔴 BLOCKED (M1 logger, L4 status).
+- `[CONFIRMED]` `FINAL_HARDENING_REPORT.md` deleted from worktree (tracked deletion).
+
+---
+
+# PART 23 — MASTER CLINE ENGINEERING HANDOVER
+
+1. **What is XENON?** An AI-powered modular security/automation platform; Phase 01 (`phase01/`) is the locked Foundation & Target Management layer for a web security assessment / bug‑bounty platform. Root README describes the wider platform (AI assistants, automation, local LLM, security modules, voice, plugins).
+2. **Cline's role?** Independent QA / security verification / regression & architecture auditor across 4 rounds. **Cline implemented nothing.**
+3. **What Cline implemented?** Nothing. (Key correction to any contrary assumption.)
+4. **What Cline reviewed?** All 11 production modules, 5 test files, both READMEs, `FINAL_HARDENING_REPORT.md`, git state, CLI behavior, imports, and security properties.
+5. **Mistakes Cline found?** 23 enumerated findings (Part 6), incl. plaintext credential logging, scope credential leakage, missing target↔scope enforcement, dict‑logging leak, logger crash, `validate_target` accepting credentials, scope normalization inconsistency, `FileOperationError` double‑wrap, unused imports, doc overclaiming, duplicate logic, incomplete tests, `enforce_scope` wrapping, and the CRITICAL non‑atomic target state.
+6. **Phase‑1 problems identified?** Above + Round‑4 logger redaction leaks (incl. new stderr leak) and L4 status normalization.
+7. **How fixed?** By **Claude Code** across 3 remediation passes; Cline re‑verified each. Verified fixed: #1–#9, #12, #15(part), #16, #17, #18, #20. Still open: #19 (M1), #21 (L4), #22 (L5 partial), #23 (tests), plus LOW items.
+8. **Known architecture?** `main.py` → `config` + `core` (+ `models`, `utils`) → validation; locked folder structure; data contracts for Target/Scope; mandatory scope enforcement; centralized logging with redaction; `Path`‑based output boundary.
+9. **Important files/modules?** `core/logger.py` (currently the blocker), `core/target_manager.py`, `core/scope_manager.py`, `utils/validation.py`, `utils/file_utils.py`, `main.py`, `config/defaults.py`, `config/settings.py`, `models/*`, `tests/*`, `phase01/README.md`.
+10. **What has been tested?** Full unittest suite ×2–3 per round (60→65→73→79), CLI (7 scenarios), imports (11), path security (traversal/absolute/sibling/parent/symlink), atomic state A–H, mandatory scope, scope semantics, normalization, validation consistency (17 cases, 0 disagreements), logger matrices, data contracts, git hygiene, determinism.
+11. **What passed?** Suite determinism; scope enforcement/fail‑closed/precedence/wildcard; path boundary; atomic state; mandatory scope; credential rejection in validation & CLI; M2 single‑wrap; L1; CLI; imports; architecture; M2.
+12. **What failed?** M1 logger redaction (inline `key : / key =`; parameterized `Authorization: %s`/`Cookie: %s` → secret to stderr + broken logging); L4 status normalization; L5 explicit‑INFO; test coverage for those.
+13. **Remaining unfinished?** Logger fix, L4, L5, missing tests, LOW cleanups, commit of the working tree, Phase 02+.
+14. **What must NOT be repeated?** Re‑writing the locked folder structure/modules; re‑introducing scope bypass/opt‑in scope; mutating target state before validation; logging raw user input; the double‑wrap pattern; and the stale `FINAL_HARDENING_REPORT.md` claims.
+15. **What should the next engineer/AI do next?**
+   1. Fix `SensitiveDataFilter` (never destroy `%` placeholders; accept optional whitespace around `:`/`=`; convert formatting failure into a fixed `REDACTED` message).
+   2. Fix L4 (`status.lower()` before validation) and L5 (sentinel default).
+   3. Add the missing regression tests (logger variants incl. `Authorization: %s`, status matrix, logger levels, CLI, credential scope‑entries); harden/rename weak file tests.
+   4. Re‑run `python3 -m unittest discover -s phase01/tests -v` ×3 and the CLI/import checks.
+   5. Re‑run the Round‑4 gate; all other boundaries already pass, so a clean logger + L4 result should yield 🟢 PASS, enabling Phase 01 approval and Phase 02 planning.
+
+**Proof/QA integrity:** across all sessions, Cline modified no repository file, created no file inside the repo, applied no fix, and performed no commit/push. All evidence lived under `/tmp` (files named `qa2_*`, `qa3_*`, `r4_*`, `qa3a/b/c.txt`, `/tmp/qa3_run*.txt`, `/tmp/r4_run*.txt`, `/tmp/r4_m1.txt`, `/tmp/r4_m2.txt`, `/tmp/r4_l4.txt`, `/tmp/r4_l5.txt`, `/tmp/r4_brk.txt`, `/tmp/r4_err.txt`, `/tmp/r4_cli.txt`, `/tmp/r4_imports.txt`, `/tmp/r4_git.txt`, `/tmp/r4_audit.txt`, `/tmp/r4_atomic.txt`, `/tmp/r4_scope.txt`, `/tmp/r4_val.txt`, `/tmp/r4_cov.txt`, `/tmp/r4_cov2.txt`, `/tmp/r4_diffstat.txt`).

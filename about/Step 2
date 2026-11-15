@@ -1,0 +1,1059 @@
+PROJECT CONTINUATION PROMPT — XENON + FreeLLMAPI + Claude Code
+
+
+
+Bhai, hum XENON project par kaam kar rahe hain. Ye prompt previous chat ka complete context hai. Isko carefully read karke current state samajh aur kaam wahi se continue karna jahan previous chat chhodi thi. Mujhe already completed steps dobara mat karwana jab tak verification ki zarurat na ho.
+
+
+
+==================================================
+
+1. MAIN PROJECT
+
+==================================================
+
+
+
+Project Name: XENON
+
+
+
+Project directory:
+
+    /home/kunal/Xenon
+
+
+
+Environment:
+
+    Ubuntu running inside VirtualBox.
+
+
+
+XENON ek AI/coding/security-oriented project hai jisme Claude Code ko implementation agent ke roop mein use karna hai.
+
+
+
+Humara current workflow:
+
+
+
+    ChatGPT
+
+        ↓
+
+    Architecture / Planning / Debugging
+
+        ↓
+
+    Claude Code
+
+        ↓
+
+    XENON implementation
+
+
+
+Claude Code ko directly expensive/limited Anthropic API par depend karne ke bajay FreeLLMAPI ke through route kar rahe hain.
+
+
+
+Architecture:
+
+
+
+    Claude Code
+
+        ↓
+
+    FreeLLMAPI
+
+        ↓
+
+    Multiple free/available LLM providers
+
+        ↓
+
+    Response back to Claude Code
+
+
+
+Goal:
+
+Agar ek provider 429/rate-limit/quota/5xx ki wajah se fail ho, FreeLLMAPI doosre available provider par automatically failover kare.
+
+
+
+==================================================
+
+2. FREELLMAPI
+
+==================================================
+
+
+
+Repository:
+
+    https://github.com/tashfeenahmed/freellmapi
+
+
+
+FreeLLMAPI local Docker container ke through run ho raha hai.
+
+
+
+Container:
+
+    freellmapi-freellmapi-1
+
+
+
+Image:
+
+    ghcr.io/tashfeenahmed/freellmapi:latest
+
+
+
+Local address:
+
+    http://localhost:3001
+
+
+
+Port:
+
+    3001
+
+
+
+Container healthy hai.
+
+
+
+FreeLLMAPI ka purpose:
+
+- Multiple LLM providers ko aggregate karna
+
+- Unified API provide karna
+
+- Provider/model routing
+
+- 429/5xx failures par fallback/failover
+
+- Provider keys manage karna
+
+- Claude/Anthropic-compatible API expose karna
+
+
+
+Anthropic-compatible endpoint:
+
+    http://localhost:3001/v1/messages
+
+
+
+IMPORTANT:
+
+Claude Code ke liye BASE URL mein `/v1` append nahi karna.
+
+
+
+Correct:
+
+    ANTHROPIC_BASE_URL=http://localhost:3001
+
+
+
+Not:
+
+    ANTHROPIC_BASE_URL=http://localhost:3001/v1
+
+
+
+==================================================
+
+3. CLAUDE CODE CONFIGURATION
+
+==================================================
+
+
+
+Claude Code installed successfully.
+
+
+
+Version:
+
+    Claude Code 2.1.247
+
+
+
+Executable:
+
+    ~/.local/bin/claude
+
+
+
+PATH issue fix ho chuka hai:
+
+    export PATH="$HOME/.local/bin:$PATH"
+
+
+
+Claude Code XENON directory se successfully run hua.
+
+
+
+Environment variables:
+
+
+
+    ANTHROPIC_BASE_URL="http://localhost:3001"
+
+
+
+    ANTHROPIC_AUTH_TOKEN="<FreeLLMAPI unified API key>"
+
+
+
+IMPORTANT:
+
+Claude Code ke liye:
+
+    ANTHROPIC_AUTH_TOKEN
+
+
+
+use karna hai.
+
+
+
+NOT:
+
+    ANTHROPIC_API_KEY
+
+
+
+Unified API key FreeLLMAPI dashboard ke:
+
+    Keys → Unified API key
+
+
+
+se li gayi thi.
+
+
+
+Actual secret/API key ko kabhi chat mein expose nahi karna.
+
+
+
+==================================================
+
+4. CLAUDE CODE VERIFICATION
+
+==================================================
+
+
+
+Claude Code successfully start hua tha inside:
+
+
+
+    /home/kunal/Xenon
+
+
+
+Claude Code se humne test karwaya:
+
+
+
+    "Hello. Tell me which project directory you are currently working in. Do not modify any files."
+
+
+
+Claude ne correctly return kiya:
+
+
+
+    /home/kunal/Xenon
+
+
+
+Phir:
+
+
+
+    "Do not modify any files. Run: pwd Then tell me the current directory."
+
+
+
+Claude Code ne Bash `pwd` run kiya aur correctly return kiya:
+
+
+
+    /home/kunal/Xenon
+
+
+
+Isliye Claude Code ka local XENON workspace access verified hai.
+
+
+
+Claude Code UI ne Claude-family model show kiya tha, but actual underlying routing FreeLLMAPI ke configured providers/models ke through ho sakti hai.
+
+
+
+==================================================
+
+5. DIRECT API VERIFICATION
+
+==================================================
+
+
+
+Initially direct Anthropic-compatible request par:
+
+
+
+    429 no_providers_configured
+
+
+
+aaya tha because FreeLLMAPI mein koi provider configured nahi tha.
+
+
+
+Google AI Studio API key add karne ke baad direct test successful hua.
+
+
+
+Test model:
+
+    claude-sonnet-4-5
+
+
+
+Successful response:
+
+
+
+    {
+
+      "id": "...",
+
+      "type": "message",
+
+      "role": "assistant",
+
+      "model": "claude-sonnet-4-5",
+
+      "content": [
+
+        {
+
+          "type": "text",
+
+          "text": "Hello"
+
+        }
+
+      ]
+
+    }
+
+
+
+Therefore this chain was verified:
+
+
+
+    Claude-compatible request
+
+            ↓
+
+       FreeLLMAPI
+
+            ↓
+
+     Google AI Studio
+
+            ↓
+
+          Model
+
+            ↓
+
+        "Hello"
+
+
+
+==================================================
+
+6. INITIAL GEMINI RATE LIMIT ISSUE
+
+==================================================
+
+
+
+After Claude Code was working, we encountered:
+
+
+
+    API Error: Request rejected (429)
+
+
+
+with message similar to:
+
+
+
+    All models rate-limited after 1 attempt.
+
+
+
+Attempt trail showed Google/Gemini provider hitting:
+
+
+
+    429 RESOURCE_EXHAUSTED
+
+
+
+This confirmed that relying on only Google AI Studio/Gemini is not enough for long coding-agent sessions.
+
+
+
+Therefore we decided to configure multiple providers so FreeLLMAPI can use fallback/failover when a provider becomes rate-limited.
+
+
+
+==================================================
+
+7. CURRENT PROVIDERS CONFIGURED
+
+==================================================
+
+
+
+IMPORTANT CURRENT STATUS:
+
+
+
+We have successfully configured and verified these providers:
+
+
+
+1. Google AI Studio
+
+   Status: HEALTHY
+
+   Keys: 1
+
+
+
+2. Groq
+
+   Status: HEALTHY
+
+   Keys: 1
+
+   Label used: groq-main
+
+
+
+3. Cerebras
+
+   Status: HEALTHY
+
+   Keys: 1
+
+
+
+4. Mistral
+
+   Status: HEALTHY
+
+   Keys: 1
+
+
+
+Current dashboard state before leaving the previous chat:
+
+    4 providers configured
+
+    All 4 healthy
+
+
+
+Google AI Studio had previously shown:
+
+    1 healthy
+
+
+
+Groq had shown:
+
+    1 healthy
+
+
+
+Cerebras was subsequently added and confirmed healthy.
+
+
+
+Mistral was subsequently added and confirmed healthy.
+
+
+
+==================================================
+
+8. PROVIDER FALLBACK STRATEGY
+
+==================================================
+
+
+
+The conceptual provider pool we were building:
+
+
+
+    Google AI Studio
+
+          ↓
+
+        Groq
+
+          ↓
+
+       Cerebras
+
+          ↓
+
+       Mistral
+
+          ↓
+
+      OpenRouter
+
+          ↓
+
+     NVIDIA NIM (optional)
+
+
+
+IMPORTANT:
+
+This is the planned provider pool/order discussed in the previous chat, NOT a claim that this exact ordering has already been configured as a formal routing chain.
+
+
+
+We had only added and verified the first four providers.
+
+
+
+Next provider we decided to add:
+
+
+
+    OpenRouter
+
+
+
+NVIDIA NIM was discussed as an optional additional backup, but we decided:
+
+
+
+    OpenRouter FIRST
+
+    NVIDIA NIM LATER / OPTIONAL
+
+
+
+Do not immediately jump to NVIDIA unless there is a reason.
+
+
+
+==================================================
+
+9. CURRENT EXACT STOPPING POINT
+
+==================================================
+
+
+
+The last completed action:
+
+
+
+Mistral was added successfully and confirmed HEALTHY.
+
+
+
+Then we discussed which provider to add next.
+
+
+
+Decision:
+
+
+
+    NEXT = OpenRouter
+
+
+
+NOT NVIDIA NIM yet.
+
+
+
+The next action should therefore be:
+
+
+
+    FreeLLMAPI Dashboard
+
+        → Keys
+
+        → Providers
+
+        → + Add key
+
+        → Platform = OpenRouter
+
+
+
+Then create/get an OpenRouter API key, add it to FreeLLMAPI, and verify that it becomes HEALTHY.
+
+
+
+After that, we can consider NVIDIA NIM as an optional additional provider.
+
+
+
+==================================================
+
+10. IMPORTANT ROUTING CONCEPT
+
+==================================================
+
+
+
+Do NOT assume that simply adding provider keys means the exact desired priority chain has already been configured.
+
+
+
+We still need to verify/configure how FreeLLMAPI chooses models/providers for Claude Code.
+
+
+
+Eventually we need to inspect:
+
+
+
+- Available models
+
+- Model capabilities
+
+- Tool/function calling support
+
+- Coding suitability
+
+- Fallback behavior
+
+- `auto` routing
+
+- Anthropic model aliases
+
+- Provider priority/fallback chain
+
+- What happens on 429
+
+- What happens on 5xx
+
+- What happens on timeout
+
+- Whether Claude Code tool calls work correctly through each fallback model
+
+
+
+For XENON/Claude Code, prioritize providers/models that support coding workloads and tool/function calling.
+
+
+
+Do not blindly add dozens of providers.
+
+Reliability and compatibility are more important than provider count.
+
+
+
+==================================================
+
+11. FREE LLM API / TOKEN / LIMIT UNDERSTANDING
+
+==================================================
+
+
+
+FreeLLMAPI does NOT magically make all Claude usage free.
+
+
+
+It acts as a gateway/router to available provider APIs.
+
+
+
+Each provider has its own:
+
+- Rate limits
+
+- Token limits
+
+- Daily/monthly quotas
+
+- Model availability
+
+- Tool support
+
+- API restrictions
+
+
+
+Multiple keys from the same provider should NOT be treated as unlimited quota.
+
+
+
+The goal is to diversify across different providers.
+
+
+
+Example:
+
+
+
+    Gemini hits 429
+
+        ↓
+
+    FreeLLMAPI
+
+        ↓
+
+    Try another eligible provider/model
+
+        ↓
+
+    Continue request
+
+
+
+==================================================
+
+12. CLAUDE CODE SESSION INFORMATION
+
+==================================================
+
+
+
+Claude Code sessions are saved locally.
+
+
+
+Important commands discussed:
+
+
+
+    claude --continue
+
+    claude -c
+
+
+
+Resume latest session.
+
+
+
+    claude --resume
+
+    claude -r
+
+
+
+Open session picker.
+
+
+
+Inside Claude Code:
+
+
+
+    /resume
+
+
+
+Switch/resume another session.
+
+
+
+    /rename name
+
+
+
+Rename current session.
+
+
+
+Then a named session can be resumed with:
+
+
+
+    claude --resume name
+
+
+
+    /clear
+
+
+
+Starts a fresh conversation context, but previous session remains resumable.
+
+
+
+    /compact
+
+
+
+Compacts/summarizes current context without creating a completely new session.
+
+
+
+Claude Code session files are stored under:
+
+
+
+    ~/.claude/projects/
+
+
+
+==================================================
+
+13. IMPORTANT PAST SETUP FIXES
+
+==================================================
+
+
+
+Docker permission issue was fixed using:
+
+
+
+    sudo usermod -aG docker $USER
+
+    newgrp docker
+
+
+
+Claude Code installation initially failed because Ubuntu was using Snap curl.
+
+
+
+Fix:
+
+
+
+    sudo snap remove curl
+
+    sudo apt update
+
+    sudo apt install curl -y
+
+
+
+Then Claude Code installed successfully using:
+
+
+
+    curl -fsSL https://claude.ai/install.sh | bash
+
+
+
+PATH was fixed using:
+
+
+
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+
+    source ~/.bashrc
+
+
+
+Do NOT repeat these fixes unless a current verification shows they are actually needed.
+
+
+
+==================================================
+
+14. IMPORTANT WORKING STYLE
+
+==================================================
+
+
+
+I want direct, practical, step-by-step guidance.
+
+
+
+Do not dump 20 steps at once.
+
+
+
+For setup tasks:
+
+1. Give me the immediate next action.
+
+2. Let me perform it.
+
+3. Ask me to show the resulting screen/output if needed.
+
+4. Verify it.
+
+5. Then move to the next step.
+
+
+
+Do not make me repeat already completed setup.
+
+
+
+If something is current/time-sensitive (provider availability, API limits, FreeLLMAPI behavior, documentation, supported models), verify it from current official/reliable sources before making a factual claim.
+
+
+
+Never ask me to paste secret API keys into chat.
+
+
+
+When I send a screenshot, inspect it carefully and tell me exactly what to click/type next.
+
+
+
+==================================================
+
+15. CURRENT GOAL
+
+==================================================
+
+
+
+Immediate goal:
+
+
+
+Build a reliable multi-provider FreeLLMAPI setup for Claude Code so that XENON development does not stop whenever one free provider hits a rate limit.
+
+
+
+Current state:
+
+
+
+    ✅ FreeLLMAPI installed
+
+    ✅ Docker container healthy
+
+    ✅ FreeLLMAPI dashboard working
+
+    ✅ Unified API key created
+
+    ✅ ANTHROPIC_BASE_URL configured
+
+    ✅ ANTHROPIC_AUTH_TOKEN configured
+
+    ✅ Claude Code installed
+
+    ✅ Claude Code working inside /home/kunal/Xenon
+
+    ✅ Direct Anthropic-compatible API test successful
+
+    ✅ Google AI Studio healthy
+
+    ✅ Groq healthy
+
+    ✅ Cerebras healthy
+
+    ✅ Mistral healthy
+
+    ⏭️ OpenRouter = NEXT
+
+    ⏳ NVIDIA NIM = OPTIONAL/LATER
+
+    ⏳ Final routing/fallback configuration = AFTER PROVIDER SETUP
+
+    ⏳ Final Claude Code/XENON stress test = AFTER ROUTING CONFIGURATION
+
+
+
+==================================================
+
+16. HOW TO CONTINUE
+
+==================================================
+
+
+
+Start from the CURRENT STOPPING POINT.
+
+
+
+Do NOT explain the entire setup again.
+
+
+
+The immediate next task is:
+
+
+
+    Add OpenRouter to FreeLLMAPI.
+
+
+
+After OpenRouter is healthy, verify the provider pool and then guide me through configuring/testing the actual fallback/model routing for Claude Code.
+
+
+
+The final target architecture is:
+
+
+
+    XENON
+
+      ↓
+
+    Claude Code
+
+      ↓
+
+    FreeLLMAPI :3001
+
+      ↓
+
+    Multiple provider/model options
+
+      ↓
+
+    Automatic fallback on rate limits/errors
+
+      ↓
+
+    Claude Code continues working
+
+
+
+Remember:
+
+The objective is not merely to collect API keys.
+
+The objective is a reliable, coding/tool-capable fallback system for XENON development.
+
+
+
+Continue from here.

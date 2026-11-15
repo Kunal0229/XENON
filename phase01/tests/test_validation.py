@@ -35,6 +35,10 @@ class TestValidation(unittest.TestCase):
         with self.assertRaises(InvalidTargetError):
             validate_target("https://example.com:99999")
 
+    def test_invalid_target_credentials(self):
+        with self.assertRaises(InvalidTargetError):
+            validate_target("https://user:pass@example.com")
+
     def test_valid_scope_entry(self):
         self.assertTrue(validate_scope_entry("example.com"))
         self.assertTrue(validate_scope_entry("*.example.com"))
@@ -65,6 +69,19 @@ class TestValidation(unittest.TestCase):
         with self.assertRaises(InvalidScopeError):
             validate_scope({"out_of_scope": ["example.com"]})
 
+    # NEW REGRESSION TESTS
+    def test_valid_target_with_query_fragment(self):
+        self.assertTrue(validate_target("https://example.com/path?query=value#fragment"))
+
+    def test_valid_scope_entry_with_query_fragment(self):
+        self.assertTrue(validate_scope_entry("https://example.com/path?query=value#fragment"))
+
+    def test_valid_scope_with_query_fragment(self):
+        valid_scope = {
+            "in_scope": ["https://example.com/path?query=value#fragment"],
+            "out_of_scope": ["https://payments.example.com"]
+        }
+        self.assertTrue(validate_scope(valid_scope))
 
 if __name__ == '__main__':
     unittest.main()

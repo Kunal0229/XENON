@@ -3,7 +3,6 @@ Validation utilities for targets and scope in XENON Phase 01.
 """
 
 from urllib.parse import urlparse
-from typing import Dict, Any, List
 from phase01.config.defaults import SUPPORTED_SCHEMES
 from phase01.core.exceptions import InvalidTargetError, InvalidScopeError
 
@@ -46,6 +45,10 @@ def validate_target(target: str) -> bool:
 
     if not parsed.netloc:
         raise InvalidTargetError(f"Target missing hostname/netloc: {target}")
+
+    # Reject credential-bearing URLs
+    if parsed.username or parsed.password:
+        raise InvalidTargetError("Target URL contains credentials - rejected for security")
 
     try:
         hostname = parsed.hostname

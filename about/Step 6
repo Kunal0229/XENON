@@ -1,0 +1,377 @@
+BHAI — YE XENON PROJECT KA CONTEXT/HANDOFF PROMPT HAI.
+IS CHAT KO PADH KAR MUJHE WAHI CONTEXT CONTINUE KARNA HAI. MUJHE PURANI BAATEIN DOBARA EXPLAIN KARNE KE LIYE MAT BOLNA.
+
+==================================================
+PROJECT: XENON
+==================================================
+
+XENON mera primary project hai. Abhi mujhe AI_Mock_Interview par kaam nahi karna. Saara development XENON par continue karna hai.
+
+Humne recently Windows 11 host machine par VirtualBox ke andar XENON ke liye fresh Ubuntu environment setup kiya hai.
+
+==================================================
+1. UBUNTU / VIRTUALBOX SETUP
+==================================================
+
+Ubuntu version:
+- Ubuntu 22.04 LTS
+- 64-bit
+- VM Name: XENON-Ubuntu-22.04
+
+VirtualBox:
+- VM successfully created
+- Initial virtual disk: 50 GB
+- Baad me virtual disk ko 150 GB kar diya
+- Ubuntu ke andar partition/filesystem successfully expand ho chuka hai
+
+Final disk verification:
+
+lsblk showed:
+- /dev/sda = 150G
+- /dev/sda3 = root partition
+
+Final df -h:
+
+/dev/sda3       147G   24G  117G  17% /
+
+So Ubuntu ab approximately 147 GB usable root space de raha hai.
+
+VM hardware setup:
+- RAM: 8192 MB
+- CPUs: 4
+- Video Memory: 128 MB
+- Graphics Controller: VMSVGA
+- 3D Acceleration: Enabled
+- Network: NAT
+- Storage: 150 GB VDI
+
+Ubuntu smoothly chal raha hai.
+
+VirtualBox Guest Additions:
+- Guest Additions CD successfully mounted
+- Mount path:
+  /media/kunal/VBox_GAs_7.2.14
+- Guest Additions version visible: 7.2.14
+
+Display/session:
+- Ubuntu currently reports:
+  echo $XDG_SESSION_TYPE
+  -> wayland
+
+Wayland currently works fine and Ubuntu is running smoothly.
+Earlier VirtualBox fullscreen/display scaling issue hua tha, Guest Additions related troubleshooting ki thi.
+Abhi environment usable hai.
+
+Home folder desktop icon ko bhi remove/hide kar diya gaya hai, so desktop clean hai.
+
+IMPORTANT:
+Ubuntu ko dobara reinstall karne ki zarurat nahi hai.
+Existing XENON-Ubuntu-22.04 VM hi use karni hai.
+
+==================================================
+2. CHATGPT + VS CODE
+==================================================
+
+Ubuntu me:
+- ChatGPT ko app-like setup kar diya gaya hai
+- VS Code successfully installed
+- VS Code me GitHub account se login bhi kar liya gaya hai
+
+VS Code se XENON project open kiya gaya hai.
+
+==================================================
+3. PYTHON ENVIRONMENT
+==================================================
+
+System Python:
+
+python3 --version
+Python 3.10.12
+
+pip:
+
+pip3 --version
+pip 22.0.2
+
+Python venv module available hai.
+
+XENON project directory:
+
+/home/kunal/Xenon
+
+Virtual environment:
+- Name: myenv
+- Location:
+  /home/kunal/Xenon/myenv
+
+Activation command:
+
+source myenv/bin/activate
+
+Current working shell usually looks like:
+
+(myenv) kunal@XENON:~/Xenon$
+
+==================================================
+4. PROJECT ROOT
+==================================================
+
+Current XENON project structure at initial Git setup:
+
+Xenon/
+├── .gitignore
+├── README.md
+├── requirements.txt
+├── myenv/
+└── .vscode/
+
+IMPORTANT:
+myenv/ must NOT be committed to GitHub.
+
+.gitignore has already been created and saved.
+
+requirements.txt has already been created.
+
+==================================================
+5. GITHUB REPOSITORY
+==================================================
+
+GitHub repository:
+- Repository name: XENON
+- Visibility: PRIVATE
+- GitHub username: Kunal0229
+
+Remote:
+
+https://github.com/Kunal0229/XENON.git
+
+Git remote is already configured:
+
+git remote -v
+
+origin points to:
+https://github.com/Kunal0229/XENON.git
+
+Branch:
+- main
+
+==================================================
+6. GIT SETUP
+==================================================
+
+Git was installed inside Ubuntu.
+
+GitHub CLI was installed using:
+
+sudo snap install gh --classic
+
+GitHub CLI authentication was completed successfully:
+
+gh auth login
+
+Result:
+- Logged in as Kunal0229
+- Git protocol configured as HTTPS
+
+Git global identity was configured.
+
+IMPORTANT:
+GitHub initially rejected the push because GitHub's email privacy protection detected the commit author's private email.
+
+We fixed this by configuring the GitHub noreply email and amending the initial commit.
+
+Current Git author email is the GitHub noreply address.
+
+==================================================
+7. INITIAL COMMIT / FIRST PUSH
+==================================================
+
+Repository initialized with:
+
+git init
+
+Branch renamed/set to:
+main
+
+Initial files:
+- .gitignore
+- README.md
+- requirements.txt
+
+Initial commit message:
+
+"Initial project setup"
+
+The first push initially failed because of GitHub email privacy protection.
+
+After fixing the commit author email:
+
+git commit --amend --reset-author
+
+Then:
+
+git push -u origin main
+
+SUCCESSFUL RESULT:
+
+To https://github.com/Kunal0229/XENON.git
+ * [new branch]      main -> main
+Branch 'main' set up to track remote branch 'main' from 'origin'.
+
+So GitHub connection is COMPLETE.
+
+==================================================
+8. CURRENT GIT STATUS / WORKFLOW
+==================================================
+
+Git repository is already connected to GitHub.
+
+From now on, normal daily workflow is:
+
+cd ~/Xenon
+source myenv/bin/activate
+
+After completing work:
+
+git status
+git add .
+git commit -m "Meaningful commit message"
+git push
+
+Do NOT unnecessarily repeat GitHub authentication or remote setup.
+
+==================================================
+9. IMPORTANT WORKING STYLE
+==================================================
+
+I prefer doing things ONE STEP AT A TIME.
+
+Do NOT give me 10 commands at once.
+
+When we are configuring/installing/debugging something:
+1. Give me one step/command.
+2. I execute it.
+3. I send you the output/screenshot.
+4. Then give me the next step.
+
+Do not jump ahead unless necessary.
+
+Also, if I show you a screenshot/terminal output, carefully inspect it before telling me what to do next.
+
+==================================================
+10. XENON DEVELOPMENT DIRECTION
+==================================================
+
+The environment setup is now complete.
+
+The next phase is actual XENON development.
+
+Do not switch the project to AI_Mock_Interview.
+
+XENON is the primary project.
+
+Before major coding, maintain a clean and scalable architecture.
+
+The existing broader XENON project context includes:
+- AI assistant / intelligence engine
+- automation
+- cybersecurity / ASM direction
+- recon
+- vulnerability detection
+- detectors
+- orchestration
+- reporting
+- future extensibility
+
+The previous XENON work had already reached advanced phases, including:
+- Phase 11: Attack Surface Analyzer
+- Phase 12: Recon / Endpoint / Parameter discovery architecture
+- Phase 13: Detector Router / Executor / Findings Manager / Orchestrator
+- Phase 14: Authentication Detector
+- Phase 15: Technology Detection
+- Phase 16: Directory Discovery
+- Phase 17: IDOR Detection Engine
+
+Phase 18 was planned as:
+Parameter Discovery + Injection Detection Engine.
+
+There was also a later XENON conversation called:
+"Xenon Workflow Validation"
+
+That conversation contained important latest XENON context, but it may have been deleted/recovered separately. If that context is available through the conversation context/memory, use it.
+
+==================================================
+11. REQUIREMENTS.TXT
+==================================================
+
+requirements.txt already exists in the project root.
+
+We intend to maintain all required Python dependencies there.
+
+Do NOT blindly install random libraries.
+
+When we begin XENON development, determine dependencies based on actual architecture/code requirements and keep requirements.txt clean.
+
+==================================================
+12. CURRENT STATE
+==================================================
+
+CURRENT ENVIRONMENT:
+
+Windows 11
+    ↓
+VirtualBox
+    ↓
+Ubuntu 22.04 LTS
+    ↓
+XENON-Ubuntu-22.04 VM
+    ↓
+Python 3.10.12
+    ↓
+~/Xenon
+    ↓
+myenv virtual environment
+    ↓
+VS Code
+    ↓
+Git
+    ↓
+GitHub Private Repository
+    ↓
+Kunal0229/XENON
+    ↓
+main branch
+
+Everything above is already configured.
+
+GitHub first push was successful.
+
+==================================================
+13. WHAT WE SHOULD DO NEXT
+==================================================
+
+Do NOT redo the environment setup.
+
+Do NOT recreate the Git repository.
+
+Do NOT reinstall Ubuntu.
+
+Do NOT reconnect GitHub.
+
+Start from the current working XENON project.
+
+First inspect the current project state and then continue XENON development systematically.
+
+Remember:
+- XENON, NOT AI_Mock_Interview
+- Ubuntu 22.04 LTS
+- Python 3.10.12
+- venv = myenv
+- project = ~/Xenon
+- GitHub repo = private Kunal0229/XENON
+- branch = main
+- Git remote already configured
+- initial commit already pushed successfully
+- one step at a time
+
+END OF HANDOFF CONTEXT.

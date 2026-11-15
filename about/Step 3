@@ -1,0 +1,14 @@
+| Role                                 | Kaun              | Responsibility                                                           |
+| ------------------------------------ | ----------------- | ------------------------------------------------------------------------ |
+| 🧠 **Project Lead / Final Decision** | **Tu**            | Scope, priorities, architecture approval, final decisions                |
+| 🏗️ **Architect / Security Planner** | **Main**          | Architecture, phase planning, module contracts, design review, reasoning |
+| 💻 **Primary Code Agent**            | **Claude Code**   | Actual implementation, refactoring, code changes                         |
+| 🧪 **Testing / QA Agent**            | **Cline**         | Test execution, regression testing, bug reproduction, test reports       |
+| 🔍 **Code Review / Debugging**       | **Main + Claude** | Root-cause analysis, review, fixes                                       |
+| 📋 **Project Documentation**         | **Main + Claude** | Technical docs, architecture docs, changelogs                            |
+
+
+
+Hamara workflow
+
+Architecture → README/spec → Claude Code implementation → Cline testing → ChatGPT review → Claude fixes → Cline retest → User final approval
